@@ -1,3 +1,36 @@
+
+####FORMATTING FUNCTIONS########################################
+def hexFormat_nox(val,fill):
+    v=hex(val)  #hexadecimal value
+    v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
+    v=v.zfill(fill) #inserts zeros at the beginning
+    return v
+
+def hexFormat(val,fill):
+    v=hex(val)  #hexadecimal value
+    v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
+    v=v.zfill(fill) #inserts zeros at the beginning
+    v='0x'+v #puts back 0x
+    return v
+
+def binFormat_nob(val,fill):
+    v=bin(val)  #binary value
+    v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
+    v=v.zfill(fill) #inserts zeros at the beginning
+    return v
+
+def binFormat(val,fill):
+    v=bin(val)  #binary value
+    v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
+    v=v.zfill(fill) #inserts zeros at the beginning
+    v='0b'+v #puts back 0b
+    return v
+
+def decFormat(val,fill):
+    v=str(val)  #decimal value
+    v=v.zfill(fill) #inserts zeros at the beginning
+    return v
+
 class loop:
 #this is a "local style" class
     def __init__(self, start=0x400, stop=0x400, n=0):
@@ -16,7 +49,7 @@ class pat:
     def __init__(self,Nbits=64):
         self.start=0
         self.end=0
-        self.Nbits=self.Nbits
+        self.Nbits=Nbits
         self.Val=0 
         self.maskNbits=pow(2,Nbits)-1
         self.LineN=0
@@ -26,83 +59,34 @@ class pat:
         self.waits=[wait(),wait(),wait()]
 
 
-    ####FORMATTING FUNCTIONS########################################
-    def hexFormat_nox(val,fill):
-        v=hex(val)  #hexadecimal value
-        v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
-        v=v.zfill(fill) #inserts zeros at the beginning
-        return v
-
-    def hexFormat(val,fill):
-        v=hex(val)  #hexadecimal value
-        v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
-        v=v.zfill(fill) #inserts zeros at the beginning
-        v='0x'+v #puts back 0x
-        return v
-
-    def binFormat_nob(val,fill):
-        v=bin(val)  #binary value
-        v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
-        v=v.zfill(fill) #inserts zeros at the beginning
-        return v
-
-    def binFormat(val,fill):
-        v=bin(val)  #binary value
-        v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
-        v=v.zfill(fill) #inserts zeros at the beginning
-        v='0b'+v #puts back 0b
-        return v
-
-    def decFormat(val,fill):
-        v=str(val)  #decimal value
-        v=v.zfill(fill) #inserts zeros at the beginning
-        return v
     ################################################################
   
     ################################################################
-    ##PAERN CONTROL FUNCTIONS##
+    ##PATTERN CONTROL FUNCTIONS##
 
-    def setbit(bit,word):
+
+    def setbit(self,bit,word):
         maskBit=1<<bit
         word=word|maskBit
-        return(word)
+        return word
 
-    #THIS FUNCTION IS REDUNDANT, you can use setbit instead
-    def SBREG(x,reg):
-        #print(reg)
-        reg=reg|(1<<x)
-        print("Setting register to:"+str(reg))
-        return reg
-
-    def clearbit(bit,word):
+    def clearbit(self,bit,word):
         maskBit=1<<bit
         maskBitN=self.maskNbits-maskBit
         word=word&maskBitN
-        return(word)
+        return word
         
-    def SB(bit,prN=0):
-        self.Val=setbit(bit,self.Val)
-        if prN:
-            print("SB executed at line:",self.LineN)    
+    def SB(self,*args):
+        for i in args:
+            self.Val=self.setbit(i,self.Val)
         return self.Val
  
-    def CB(bit,prN=0):
-        self.Val=clearbit(bit,self.Val)
-        if prN:
-            print("CB executed at line:",self.LineN,"on bit:",bit)
-        return self.Val
-
-    def CBs(*args):
+    def CB(self,*args):
         for i in args:
-            self.Val=clearbit(i,self.Val)
+            self.Val=self.clearbit(i,self.Val)
         return self.Val
 
-    def SBs(*args):
-        for i in args:
-            self.Val=setbit(i,self.Val)
-        return self.Val
-
-    def pw(verbose=0):
+    def pw(self,verbose=0):
         address=self.LineN
         value=self.Val
         w=self.words
@@ -113,25 +97,27 @@ class pat:
         if verbose==1:
             print(hexFormat(address,4)+' '+hexFormat(value,16))
 
-    def PW(verbose=0):
-        pw(verbose)
+    def PW(self,verbose=0):
+        self.pw(verbose)
 
-    def PW2(verbose=0):
-        pw(verbose)
-        pw(verbose)
-
-
-    def REPEAT(x):
+    def REPEAT(self,x,verbose=0):
         for i in range(x):
-            pw()
+            self.pw()
 
-    def CLOCKS(bit,times):
+    def PW2(self,verbose=0):
+        self.REPEAT(2,verbose)
+
+
+    def CLOCKS(self,bit,times=1,verbose=0):
         for i in range(0,times):
-            SB(bit);pw()
-            CB(bit);pw()
+            self.SB(bit); self.pw(verbose)
+            self.CB(bit); self.pw(verbose)
+
+    def CLOCK(self,bit,verbose=0):
+        self.CLOCKS(bit,1)
 
     #NOT DEBUGGED!!!
-    def serializer(value,serInBit,clkBit,nbits,msbfirst=1):
+    def serializer(self,value,serInBit,clkBit,nbits,msbfirst=1):
         """serializer(value,serInBit,clkBit,nbits,msbfirst=1)
         Produces the .pat file needed to serialize a word into a shift register.
         value: value to be serialized
@@ -142,92 +128,92 @@ class pat:
         if 0 pushes in the LSB first
         It produces no output because it modifies directly the members of the class pat via SB and CB"""
         c=value
-        CBs(serInBit,clkBit)
-        pw() #generate intial line with clk and serIn to 0
+        self.CB(serInBit,clkBit)
+        self.pw() #generate intial line with clk and serIn to 0
         start=0;stop=nbits;step=1
         if msbfirst:
             start=nbits-1;stop=-1;step=-1 #reverts loop if msb has to be pushed in first
             for i in range(start,stop,step):
                 if c & (1<<i): 
-                    SB(serInBit)
-                    pw()
+                    self.SB(serInBit)
+                    self.pw()
                 else:
-                    CB(serInBit)
-                    pw()
-                SB(clkBit)
-                pw()
-                CB(clkBit)
-                pw() 
-            CBs(serInBit,clkBit)
-            pw() #generate final line with clk and serIn to 0     
+                    self.CB(serInBit)
+                    self.pw()
+                self.SB(clkBit)
+                self.pw()
+                self.CB(clkBit)
+                self.pw() 
+            self.CB(serInBit,clkBit)
+            self.pw() #generate final line with clk and serIn to 0     
             #NOT IMPLEMENTED YET
             #def setstop():    
             #
             #def setoutput(bit):
-            #    self.ioctrl=setbit(bit,self.ioctrl)
+            #    self.ioctrl=self.setbit(bit,self.ioctrl)
             #
             #def setinput(bit):
-            #    self.ioctrl=clearbit(bit,self.ioctrl)
+            #    self.ioctrl=self.clearbit(bit,self.ioctrl)
         #
         #def setclk(bit):
-        #    self.clkctrl=setbit(bit,self.clkctrl)
+        #    self.clkctrl=self.setbit(bit,self.clkctrl)
 
-    def setinputs(*args):
-        for i in args:
-            setinput(i)
+   # def setinputs(self, *args):
+    #    for i in args:
+     #       self.setinput(i)
 
-    def setoutputs(*args):
-        for i in args:
-            setoutput(i)
+    #def setoutputs(self, *args):
+     #   for i in args:
+      #      self.setoutput(i)
         
-    def setclks(*args):
+    def setclks(self, *args):
         for i in args:
-            setclk(i)
+            self.setclk(i)
 
-    def setnloop(l,reps):
+    def setnloop(self,l,reps):
         self.loops[l].n=reps
 
-    def setstartloop(l):
+    def setstartloop(self,l):
         self.loops[l].start=self.LineN
 
-    def setstartloopbyaddr(l,addr):
+    def setstartloopbyaddr(self,l,addr):
         self.loops[l].start=addr
     
-    def setstoploop(l):
+    def setstoploop(self,l):
         self.loops[l].stop=self.LineN
     
-    def setstoploopbyaddr(l,addr):
+    def setstoploopbyaddr(self,l,addr):
         self.loops[l].stop=addr
 
-    def setloop(l,addr1,addr2,reps):
+    def setloop(self,l,addr1,addr2,reps):
         self.loops[l].start=addr1
         self.loops[l].stop=addr2
         self.loops[l].n=reps
 
-    def setloopbyaddr(l,addr1,addr2,reps):
+    def setloopbyaddr(self,l,addr1,addr2,reps):
         self.loops[l].start=addr1
         self.loops[l].stop=addr2
         self.loops[l].n=reps
 
 
-    def setwaitpointbyaddress(l,add):
+    def setwaitpointbyaddress(self,l,add):
         self.waits[l].addr=add
 
-    def setwaitpoint(l):
+    def setwaitpoint(self,l):
         self.waits[l].addr=self.LineN
 
-    def setwaittime(l,t):
+    def setwaittime(self,l,t):
         self.waits[l].wtime=t
 
-    def setwait(l,t):
+    def setwait(self,l,t):
         self.waits[l].addr=self.LineN
         self.waits[l].wtime=t
 
-    def setwaitbyaddress(l,add,t):
+    def setwaitbyaddress(self,l,add,t):
         self.waits[l].addr=add
         self.waits[l].wtime=t
     
-    def patInfo():
+    def patInfo(self):
         print("### SUMMARY OF PATTERN PARAMETERS ###")
         print("Pattern limits (patlimits):",self.start,self.LineN-1) 
         i=0
@@ -235,7 +221,7 @@ class pat:
             print("Loop:",i)
             classItems(l)
             i=i+1
-            i=0
+        i=0
         for l in self.waits:
             print("Wait:",i)
             classItems(l)
@@ -243,7 +229,7 @@ class pat:
         print("Next line to be written:",self.LineN)
         print("########################################")
           
-    def saveToFile(fname):
+    def saveToFile(self,fname):
         pwords=''
         paw='patword'
         for i in range(len(self.addrs)):
@@ -262,17 +248,17 @@ class pat:
         f.close()
         print("Pattern limits (patlimits):",self.start,self.LineN-1)
 
-    def load():
+    def load(self,d):
         from slsdet import Detector
-        d = Detector()
+        print("writing",len(self.addrs),"words")
         for i in range(len(self.addrs)):
             d.setPatternWord(self.addrs[i],self.words[i])
             d.setPatternLoopAddresses(-1,self.start,self.LineN-1)
-            for i in range(len(3)):
-                d.setPatternLoopAddresses(i,self.loops[i].start,self.loops[i].stop)
-                d.setPatternLoopCycles(i,self.loops[i].n)
-                d.setPatternWaitAddr(i,self.waits[i].addr)
-                d.setPatternWaitTime(i,self.waits[i].wtime)
+        for i in range(3):
+            d.setPatternLoopAddresses(i,self.loops[i].start,self.loops[i].stop)
+            d.setPatternLoopCycles(i,self.loops[i].n)
+            d.setPatternWaitAddr(i,self.waits[i].addr)
+            d.setPatternWaitTime(i,self.waits[i].wtime)
     
 
 ######################################
