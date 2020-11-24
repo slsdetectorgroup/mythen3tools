@@ -13,6 +13,8 @@ import sys
 from pattern import *
 import numpy as np
 
+from zmqreceiver import *
+
 print("IMPORTING DETECTOR CONFIGURATION FILE FOR MYTHEN 3.0 MODULE")
 
 
@@ -104,7 +106,21 @@ exposing = 25
 dbit_ena = 32
  
 #CHIP STARTUS REGISTER BITS
+CSR_spypads = 0
+CSR_invpol = 4
 CSR_dpulse = 5
+CSR_interp = 6
+CSR_C10pre = 7 #default
+CSR_pumprobe = 8
+CSR_apulse = 9
+CSR_C15sh = 10 
+CSR_C30sh = 11 #default
+CSR_C50sh = 12
+CSR_C225ACsh = 13 # Connects 225fF SHAPER AC cap (1: 225 to shaper, 225 to GND. 0: 450 to shaper) 
+CSR_C15pre = 14 
+
+CSR_default = (1<<CSR_C10pre ) | (1<< CSR_C30sh)
+
 
 
 #SIGNAL ANALYZER REGISTERS
@@ -155,6 +171,15 @@ def SELSTRIP(pat,x):
     #print("Selecting Strip:",x)
     PUSH1CHS(pat); 
     pat.CLOCKS(CHSclk,2+3*x) #strip numbering starts form 0
+
+
+def SELALLSTRIPS(pat, x=31):
+    pat.SB(CHSserialIN);
+    pat.CLOCKS(CHSclk,3+3*x) #strip numbering starts form 0
+    pat.CB(CHSserialIN);
+    pat.PW()
+
+
 
 def CLEAR_TBs(pat):
     pat.CB(TBLoad_1);
@@ -257,46 +282,68 @@ def resetChip(p):
     p.REPEAT(8);
 
 def storeCounters(p):
-    p.SB(resStorage);
+    p.SB(resStorage); #clear output registers
     p.REPEAT(10)
     p.CB(resStorage);
     p.REPEAT(10)
     p.SB(STO);
     p.REPEAT(10); #store counters in output registers
     p.CB(STO);
-    p.REPEAT(10); #store counters in output registers
+    p.REPEAT(10); 
 
-def _digitalPulsingPattern(n1,n2,n3):
+def digitalPulsingPattern(*args):
+    #if len(args) == 1:
+    if np.array(args).shape[1] == 1:
+        print("1arg",np.array(args).shape)
+        n1=args[0][0] 
+        n2=args[0][0]
+        n3=args[0][0]
+    #elif len(args) == 3:
+    if np.array(args).shape[1] == 3:
+        print("3args",np.array(args).shape)
+        n1=args[0][0]
+        n2=args[0][1] 
+        n3=args[0][2]
+    else: 
+        raise ValueError('func called with wrong number of args')
+#def _digitalPulsingPattern(n1,n2,n3):
     p=pat()
-
+    resetChip(p)#RESET CHIP
     csr=0 #content of chip status register #n (18 bits)
-    print(csr)
     csr=csr|(1<<CSR_dpulse)
     #csr=p.setbit(CSR_dpulse,csr)    # enable pulsing of the counter
     print(csr)
     setChipStatusRegister(p,csr)
-    resetChip(p)#RESET CHIP
     
     #DIGITAL PULSING SEQUENCE
     n=np.array([n1,n2,n3])
+    n1=np.array([n1,n2,n3])
+    
     nl=np.array([n1,n2,n3])
     for i in range(len(n)):
         mask= (n>0)
-        nl[i]=min(n[n>0])
+        if n[n>0].size>0:
+            nl[i]=min(n[n>0])
+        else:
+            nl[i]=0
         print(i,"*",n,"*",nl[i])
         n=n-nl[i]
-        
+    n=n1    
     nn=0
     for i in range(len(n)):
         if nl[i]>0:
             p.setnloop(i,nl[i]); #number of pulses 
             p.setstartloop(i);
+            print(n,nn)
             if n[0]-nn>0:
                 p.SB(EN1);# select here which counters have to be pulsed 
+                print(i,'en1')
             if n[1]-nn>0:
                 p.SB(EN2);
+                print(i,'en2')
             if n[2]-nn>0:
                 p.SB(EN3);
+                print(i,'en3')
             p.REPEAT(5)
             p.CB(EN1);
             p.CB(EN2);
@@ -310,13 +357,138 @@ def _digitalPulsingPattern(n1,n2,n3):
     p.patInfo()
     return p
 
-def digitalPulsingPattern(*args):
+def analogPulsingPattern(*args):
     if len(args) == 1:
-        return _digitalPulsingPattern(args[0], args[0], args[0])
+    #if np.array(args).shape[1] == 1:
+        print("1arg",np.array(args).shape)
+        n1=args[0]
+        n2=args[0]
+        n3=args[0]
     elif len(args) == 3:
-        return _digitalPulsingPattern(*args)
+    #if np.array(args).shape[1] == 3:
+        print("3args",np.array(args).shape)
+        n1=args[0]
+        n2=args[1] 
+        n3=args[2]
     else: 
         raise ValueError('func called with wrong number of args')
+#def _digitalPulsingPattern(n1,n2,n3):
+    p=pat()
+    resetChip(p)#RESET CHIP
+    csr= CSR_default #content of chip status register #n (18 bits)
+    csr=csr|(1<<CSR_apulse)
+    #csr=p.setbit(CSR_dpulse,csr)    # enable pulsing of the counter
+    print(csr)
+    setChipStatusRegister(p,csr)
+    
+   
+
+    #SELALLSTRIPS(p,31)
+    if n3!=n2:
+        n3=n2
+        print("forced pulses on counter3=pulses on counter2")
+
+
+
+    #DIGITAL PULSING SEQUENCE
+    n=np.array([n1,n2,n3])
+    n1=np.array([n1,n2,n3])
+    
+    nl=np.array([n1,n2,n3])
+    for i in range(len(n)):
+        mask= (n>0)
+        if n[n>0].size>0:
+            nl[i]=min(n[n>0])
+        else:
+            nl[i]=0
+        print(i,"*",n,"*",nl[i])
+        n=n-nl[i]
+    n=n1    
+    nn=0    
+
+    PUSH1CHS(p);
+    p.CLOCKS(CHSclk,2) #strip numbering starts form 0
+    p.PW();
+    p.setnloop(2,32); #number of pulses 
+    p.setstartloop(2);
+    p.PW();
+
+    for i in range(len(n)-1):
+        if nl[i]>0:
+            print(n,nn)
+            p.setnloop(i,nl[i]); #number of pulses 
+            p.setstartloop(i);
+            if n[0]-nn>0:
+                p.SB(EN1);# select here which counters have to be pulsed 
+                print(i,'en1')
+            else:
+                 p.CB(EN1);
+            if n[1]-nn>0:
+                p.SB(EN2);
+                print(i,'en2')
+            else:
+                p.CB(EN2);
+            if n[2]-nn>0:
+                p.SB(EN3);
+                print(i,'en3')
+            else:
+                p.CB(EN3);
+            p.REPEAT(5)
+            p.SB(pulse)
+            p.PW()
+            p.setwaittime(1,10000); #wait time - can be changed dynamically
+            p.setwaitpoint(1); #set wait points
+            p.PW()
+            p.CB(EN1);
+            p.CB(EN2);
+            p.CB(EN3);
+            p.REPEAT(5)
+            p.CB(pulse)
+            p.PW()
+            p.setwaittime(2,10000); #wait time - can be changed dynamically
+            p.setwaitpoint(2); #set wait points
+            p.REPEAT(2)
+            p.setstoploop(i);
+            p.REPEAT(2)
+            nn+=nl[i]
+
+
+    p.CLOCKS(CHSclk,3) #strip numbering starts form 0
+    p.PW()
+    p.setstoploop(2)
+
+    p.REPEAT(5)
+    storeCounters(p)
+    p.patInfo()
+    return p
+
+def exposePattern():
+    #if len(args) == 1:
+   
+    p=pat()
+    resetChip(p)#RESET CHIP
+    csr= CSR_default #content of chip status register #n (18 bits)
+    #csr=csr|(1<<CSR_apulse)
+    #csr=p.setbit(CSR_dpulse,csr)    # enable pulsing of the counter
+    print(hex(csr))
+    setChipStatusRegister(p,csr)
+    
+    resetChip(p)#RESET CHIP
+
+    p.SB(EN1);
+    p.SB(EN2);
+    p.SB(EN3);
+    p.REPEAT(5)
+    p.setwaittime(1,300); #wait time - can be changed dynamically
+    p.setwaitpoint(1); #set wait points
+    p.PW()
+    p.CB(EN1);
+    p.CB(EN2);
+    p.CB(EN3);
+    p.REPEAT(5)
+    storeCounters(p)
+    p.patInfo()
+    return p
 
 def testSerialInPattern(val):
     p=pat()
@@ -346,7 +518,66 @@ def testSerialInPattern(val):
     return p
 
 
+def readoutPattern():
+    p=pat()
+    p=appendReadoutPattern(p)
+    return p
 
+
+
+def appendReadoutPattern(p):
+    p.SB(READOUT);
+    #SB(SRmode);
+    p.REPEAT(2)
+    #selects first ch., first comp.
+    PUSH1CHS(p)
+    p.CLOCKS(clk,4);#starts the digital machinery, filling pipelines
+    #p.PW() #->We have to execute SB(dbit_ena,1) on an ODD address to be active from the next word on
+    p.SB(dbit_ena);
+    #p.PW();#SWITCHES ON DATA TAKING and moves to even address
+    #READOUT SEQUENCE
+    p.setnloop(2,96);
+    p.setstartloop(2);
+    p.CB(SRmode);
+    p.SB(clk);
+    p.PW();
+    p.CB(clk);
+    p.PW();
+    p.SB(SRmode);
+    p.SB(clk);
+    p.PW();
+    p.CB(clk);
+    p.PW();
+    #Now that we have saved the content of the counter
+    #we can already move to the next with CHSclk
+    p.SB(clk);
+    p.SB(CHSclk);
+    p.PW();
+    p.CB(clk);
+    p.PW();
+    p.SB(clk);
+    p.CB(CHSclk);
+    p.PW();
+    p.CB(clk);
+    p.PW();
+    p.CLOCKS(clk,19);
+    #The last clock cycle has to be written explicitly 
+    #To properly place the setstoploop
+    p.patInfo()
+    p.SB(clk);
+    p.PW();
+    p.setstoploop(2);
+    p.CB(clk);
+    p.PW();
+    p.CLOCKS(clk,3);#4 clks to push out pipeline
+    p.SB(clk)
+    p.PW()
+    p.CB(clk)
+    p.CB(dbit_ena);
+    p.PW();
+    print(p.LineN)
+    p.patInfo()
+    return p
 
 
 
@@ -388,3 +619,62 @@ def testSerialIn(d,val):
             errorMask|=(1<<i)
 
     return errorMask
+    
+
+
+def testDigitalPulsing(d, rx, *n):  
+    
+    if len(n) == 1:
+        npu=[n,n,n]
+    elif len(n) == 3:
+        npu=n
+    
+    pp=digitalPulsingPattern(npu)
+    pp.load(d)
+    d.startPattern()
+    d.startReceiver()
+    d.readout()
+    data, header = rx.receive_one_frame()
+    d.stopReceiver()
+    errorMask=0
+    chipMask=0
+    nch=np.int(len(data)/3)
+    for ich in range(nch):
+        for ic in range(3):
+            if data[ich*3+ic]!=npu[ic]:
+                print("Channel",ich,"Counter",ic,"read",data[ich*3+ic],"instead of",npu[ic]);
+                errorMask+=1
+                ichip=np.int(ich/128)
+                chipMask|=(1<<ichip)
+    return errorMask,chipMask
+
+
+def analogPulsingScan(d, rx,  npu, threshold):  
+    counters=d.counters
+    ncol=1280*len(counters)
+    nrow = len(threshold)
+    
+    pp=analogPulsingPattern(npu,npu,npu)
+    pp.load(d)
+    data = np.zeros((nrow,ncol), dtype =  to_dtype(d.dr))
+    d.startReceiver()
+    for i,th in enumerate(threshold):
+        if 0 in counters:
+            d.dacs.vth1=th
+        if 1 in counters:
+            d.dacs.vth2=th
+        if 2 in counters:
+            d.dacs.vth3=th
+        d.startPattern()
+        d.readout()
+    d.stopReceiver()
+    for i in range(d.rx_framescaught+1):
+        dd, header = rx.receive_one_frame()
+        if dd is None:
+            break
+        if header["frameIndex"]<len(threshold):
+            data[header["frameIndex"]]=dd
+        #print(i,th,"ok")
+    #rx.receive_stop_packet()
+    #rx.receive_one_frame()
+    return data
