@@ -1,50 +1,9 @@
 
 from slsdet import Detector, patternParameters
+from mythen3tools.bits import setbit, clearbit
+from mythen3tools.format import hexFormat, hexFormat_nox, binFormat, binFormat_nob, decFormat
 import numpy as np
 
-####FORMATTING FUNCTIONS########################################
-def hexFormat_nox(val,fill):
-    v=hex(val)  #hexadecimal value
-    v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    return v
-
-def hexFormat(val,fill):
-    v=hex(val)  #hexadecimal value
-    v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    v='0x'+v #puts back 0x
-    return v
-
-def binFormat_nob(val,fill):
-    v=bin(val)  #binary value
-    v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    return v
-
-def binFormat(val,fill):
-    v=bin(val)  #binary value
-    v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    v='0b'+v #puts back 0b
-    return v
-
-def decFormat(val,fill):
-    v=str(val)  #decimal value
-    v=v.zfill(fill) #inserts zeros at the beginning
-    return v
-
-
-def setbit(bit,word):
-    #maskBit=1<<bit
-    word = np.int64(word) | np.int64(1<<bit)
-    return word
-
-def clearbit(bit,word):
-    #maskBit=(~(1<<bit))
-    word = np.int64(word) & np.int64(~(1<<bit))
-    return word
-        
 
 class pat:
 #this is a "local style" class
