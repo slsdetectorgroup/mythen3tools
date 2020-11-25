@@ -1,4 +1,6 @@
 
+from slsdet import Detector, patternParameters
+
 ####FORMATTING FUNCTIONS########################################
 def hexFormat_nox(val,fill):
     v=hex(val)  #hexadecimal value
@@ -31,33 +33,23 @@ def decFormat(val,fill):
     v=v.zfill(fill) #inserts zeros at the beginning
     return v
 
-class loop:
-#this is a "local style" class
-    def __init__(self, start=0x400, stop=0x400, n=0):
-        self.start = start
-        self.stop = stop
-        self.n = n
 
+def setbit(self,bit,word):
+    maskBit=1<<bit
+    word=word|maskBit
+    return word
 
-class wait:
-    def __init__(self, addr=0x400, wtime=0):
-        self.addr = addr
-        self.wtime = wtime
-    
+def clearbit(self,bit,word):
+    maskBit=~(1<<bit)
+    word=word&maskBit
+    return word
+        
+
 class pat:
 #this is a "local style" class
-    def __init__(self,Nbits=64):
-        self.start=0
-        self.end=0
-        self.Nbits=Nbits
-        self.Val=0 
-        self.maskNbits=pow(2,Nbits)-1
-        self.LineN=0
-        self.addrs=[]
-        self.words=[]
-        self.loops=[loop(),loop(),loop()]
-        self.waits=[wait(),wait(),wait()]
-
+    def __init__(self):
+        self.pattern=patternParameters()
+        iaddr=0
 
     ################################################################
   
@@ -65,37 +57,22 @@ class pat:
     ##PATTERN CONTROL FUNCTIONS##
 
 
-    def setbit(self,bit,word):
-        maskBit=1<<bit
-        word=word|maskBit
-        return word
-
-    def clearbit(self,bit,word):
-        maskBit=1<<bit
-        maskBitN=self.maskNbits-maskBit
-        word=word&maskBitN
-        return word
-        
     def SB(self,*args):
         for i in args:
-            self.Val=self.setbit(i,self.Val)
-        return self.Val
+            self.pattern.word[iaddr]=setbit(i,self.pattern.word[iaddr])
+        return self.pattern.word[iaddr]
  
     def CB(self,*args):
         for i in args:
-            self.Val=self.clearbit(i,self.Val)
-        return self.Val
+            self.pattern.word[iaddr]=clearbit(i,self.pattern.word[iaddr])
+        return self.pattern.word[iaddr]
+    
 
     def pw(self,verbose=0):
-        address=self.LineN
-        value=self.Val
-        w=self.words
-        a=self.addrs
-        a.append(address)
-        w.append(value)
-        self.LineN+=1
         if verbose==1:
-            print(hexFormat(address,4)+' '+hexFormat(value,16))
+            print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[iaddr],16))
+        self.pattern.patlimits[1]=self.iaddr
+        self.iaddr+=1
 
     def PW(self,verbose=0):
         self.pw(verbose)
@@ -166,87 +143,65 @@ class pat:
      #   for i in args:
       #      self.setoutput(i)
         
-    def setclks(self, *args):
-        for i in args:
-            self.setclk(i)
+    #def setclks(self, *args):
+    #    for i in args:
+    #        self.setclk(i)
 
     def setnloop(self,l,reps):
-        self.loops[l].n=reps
+        self.pattern.patnloop[l]=reps
 
     def setstartloop(self,l):
-        self.loops[l].start=self.LineN
+        self.pattern.patloop[l*2]=self.iaddr
 
-    def setstartloopbyaddr(self,l,addr):
-        self.loops[l].start=addr
-    
     def setstoploop(self,l):
-        self.loops[l].stop=self.LineN
-    
-    def setstoploopbyaddr(self,l,addr):
-        self.loops[l].stop=addr
+        self.pattern.patloop[l*2+1]=self.iaddr
+        
 
-    def setloop(self,l,addr1,addr2,reps):
-        self.loops[l].start=addr1
-        self.loops[l].stop=addr2
-        self.loops[l].n=reps
+    def setstart(self,l):
+        self.pattern.patlimits[0]=self.iaddr
 
-    def setloopbyaddr(self,l,addr1,addr2,reps):
-        self.loops[l].start=addr1
-        self.loops[l].stop=addr2
-        self.loops[l].n=reps
-
-
-    def setwaitpointbyaddress(self,l,add):
-        self.waits[l].addr=add
-
+    def setstop(self,l):
+        self.pattern.patlimits[1]=self.iaddr
+        
     def setwaitpoint(self,l):
-        self.waits[l].addr=self.LineN
+        self.pattern.patwait[l]=self.iaddr
 
     def setwaittime(self,l,t):
-        self.waits[l].wtime=t
+        self.pattern.patwaittime[l]=t
 
     def setwait(self,l,t):
-        self.waits[l].addr=self.LineN
-        self.waits[l].wtime=t
+        self.pattern.patwait[l]=self.iaddr
+        self.pattern.patwaittime[l]=t
 
-    def setwaitbyaddress(self,l,add,t):
-        self.waits[l].addr=add
-        self.waits[l].wtime=t
     
     def patInfo(self):
         print("### SUMMARY OF PATTERN PARAMETERS ###")
-        print("Pattern limits (patlimits):",self.start,self.LineN-1) 
-        i=0
-        for l in self.loops:
-            print("Loop:",i)
-            classItems(l)
-            i=i+1
-        i=0
-        for l in self.waits:
-            print("Wait:",i)
-            classItems(l)
-            i=i+1
-        print("Next line to be written:",self.LineN)
+        print("Pattern limits (patlimits):",self.pattern.patlimits) 
+        print("Loop:",self.pattern.patloop)
+        print("Nloop:",self.pattern.patnloop)
+        print("Wait:",self.pattern.patwait)
+        print("Waittime",self.pattern.patwaittime)
         print("########################################")
           
     def saveToFile(self,fname):
         pwords=''
-        paw='patword'
-        for i in range(len(self.addrs)):
-            patline=paw+' '+hexFormat(self.addrs[i],4)+' '+hexFormat(self.words[i],16)+'\n'
-            pwords+=patline
-            l0='patloop0 '+hexFormat(self.loops[0].start,4)+' '+hexFormat(self.loops[0].stop,4)+'\n'+'patnloop0 '+str(self.loops[0].n)+'\n'
-            l1='patloop1 '+hexFormat(self.loops[1].start,4)+' '+hexFormat(self.loops[1].stop,4)+'\n'+'patnloop1 '+str(self.loops[1].n)+'\n'
-            l2='patloop2 '+hexFormat(self.loops[2].start,4)+' '+hexFormat(self.loops[2].stop,4)+'\n'+'patnloop2 '+str(self.loops[2].n)+'\n'
-            w0='patwait0 '+hexFormat(self.waits[0].addr,4)+'\n'+'patwaittime0 '+str(self.waits[0].wtime)+'\n'
-            w1='patwait1 '+hexFormat(self.waits[1].addr,4)+'\n'+'patwaittime1 '+str(self.waits[1].wtime)+'\n'
-            w2='patwait2 '+hexFormat(self.waits[2].addr,4)+'\n'+'patwaittime2 '+str(self.waits[2].wtime)+'\n'
-            f=open(fname,'w')
-            plims='patlimits '+hexFormat(self.start,4)+' '+hexFormat(self.LineN-1,4)+'\n'
-        pF=pwords+plims+l0+l1+l2+w0+w1+w2
-        f.write(pF)
+        for i in range(len(self.pattern.patlimits[2])):
+            l='patword '+hexFormat(i,4)+' '+hexFormat(self.pattern.word[i],16)+'\n'
+            pwords+=l
+        for i in range(3):
+            l='patloop'+str(i)+' '++hexFormat(self.pattern.patloop[i*2],4)+' '+hexFormat(self.pattern.patloop[i*2+1],4)+'\n'+'patnloop'+str(i)+' '+str(self.pattern.patnloop[i])+'\n'
+            pwords+=l
+        for i in range(3):
+            l='patwait'+str(i)+' '+hexFormat(self.pattern.patwait[i].addr,4)+'\n'+'patwaittime'+str(i)+' '+str(self.pattern.patwaittime[i].wtime)+'\n'
+            pwords+=l
+        
+        l='patlimits '+hexFormat(self.pattern.patlimits[0],4)+' '+hexFormat(self.pattern.patlimits[1],4)+'\n'
+        pwords+=l
+
+        f=open(fname,'w')
+        f.write(pwords)
         f.close()
-        print("Pattern limits (patlimits):",self.start,self.LineN-1)
+        
 
     def load(self,d):
         from slsdet import Detector
