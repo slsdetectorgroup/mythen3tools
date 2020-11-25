@@ -12,7 +12,7 @@ import fit_scurve as fsc
 
 d = Mythen3()
 
-#d.loadConfig('../slsDetectorPackageDeveloper/examples/my30module_standard.config')
+d.loadConfig('../slsDetectorPackageDeveloper/examples/my30module_standard.config')
 #print(d.hostname)
 
 d.stopReceiver()
@@ -28,7 +28,6 @@ rx = ZmqReceiver(zmqstr)
 d.counters=[0,1,2]
 n_counters=len(d.counters)
 
-"""
 
 
 print('TEST SERIAL IN')
@@ -45,13 +44,13 @@ else:
 
 
 
+"""
 
 print('DIGITAL PULSING')
 npuls=[8,5,3]
 digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,8,5,3)
 print('done')
 
-"""
 
 npu=1000
 smin=2000
@@ -121,3 +120,4 @@ fsc.init_fix_ampl(npu)
 flex63,noise63,ampl63,cs63,counts63=fsc.fit_all(threshold,data63)
 ax63.plot(np.where(flex63>0,flex63,threshold[0]),'ro')
 
+"""

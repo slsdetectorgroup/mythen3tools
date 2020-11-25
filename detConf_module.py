@@ -509,10 +509,17 @@ def testSerialInPattern(val):
         p.CLOCKS(clk,1)
         
     p.SB(dbit_ena);
-    p.CLOCKS(clk,24);
+    p.setnloop(0,24);
+    p.setstartloop(0);
+    #p.SB(clk)
+    #p.PW()
+    #p.CB(clk)
+    #p.PW()
+    p.CLOCK(clk);
+    p.setstoploop(0);
+    p.PW()
     p.CB(dbit_ena);
     p.PW();
-    print(p.LineN)
 
     p.patInfo()
     return p

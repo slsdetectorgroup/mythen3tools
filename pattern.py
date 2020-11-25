@@ -1,5 +1,6 @@
 
 from slsdet import Detector, patternParameters
+import numpy as np
 
 ####FORMATTING FUNCTIONS########################################
 def hexFormat_nox(val,fill):
@@ -34,14 +35,14 @@ def decFormat(val,fill):
     return v
 
 
-def setbit(self,bit,word):
-    maskBit=1<<bit
-    word=word|maskBit
+def setbit(bit,word):
+    #maskBit=1<<bit
+    word = np.int64(word) | np.int64(1<<bit)
     return word
 
-def clearbit(self,bit,word):
-    maskBit=~(1<<bit)
-    word=word&maskBit
+def clearbit(bit,word):
+    #maskBit=(~(1<<bit))
+    word = np.int64(word) & np.int64(~(1<<bit))
     return word
         
 
@@ -49,7 +50,7 @@ class pat:
 #this is a "local style" class
     def __init__(self):
         self.pattern=patternParameters()
-        iaddr=0
+        self.iaddr=0
 
     ################################################################
   
@@ -59,19 +60,20 @@ class pat:
 
     def SB(self,*args):
         for i in args:
-            self.pattern.word[iaddr]=setbit(i,self.pattern.word[iaddr])
-        return self.pattern.word[iaddr]
+            self.pattern.word[self.iaddr]=setbit(i,self.pattern.word[self.iaddr])
+        return self.pattern.word[self.iaddr]
  
     def CB(self,*args):
         for i in args:
-            self.pattern.word[iaddr]=clearbit(i,self.pattern.word[iaddr])
-        return self.pattern.word[iaddr]
+            self.pattern.word[self.iaddr]=clearbit(i,self.pattern.word[self.iaddr])
+        return self.pattern.word[self.iaddr]
     
 
     def pw(self,verbose=0):
         if verbose==1:
-            print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[iaddr],16))
+            print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[self.iaddr],16))
         self.pattern.patlimits[1]=self.iaddr
+        print("pw",self.iaddr,self.pattern.word[self.iaddr])
         self.iaddr+=1
 
     def PW(self,verbose=0):
@@ -149,29 +151,36 @@ class pat:
 
     def setnloop(self,l,reps):
         self.pattern.patnloop[l]=reps
+        print("patnloop",l,reps,self.pattern.patnloop[l])
 
     def setstartloop(self,l):
         self.pattern.patloop[l*2]=self.iaddr
+        print("patstart",l,self.iaddr,self.pattern.patloop[l*2])
 
     def setstoploop(self,l):
         self.pattern.patloop[l*2+1]=self.iaddr
+        print("patstop",l,self.iaddr,self.pattern.patloop[l*2+1])
         
 
     def setstart(self,l):
         self.pattern.patlimits[0]=self.iaddr
+        print("start",self.iaddr,self.pattern.patlimits[0])
 
     def setstop(self,l):
         self.pattern.patlimits[1]=self.iaddr
+        print("stop",self.iaddr,self.pattern.patlimits[1])
         
     def setwaitpoint(self,l):
         self.pattern.patwait[l]=self.iaddr
+        print("wait",l,self.iaddr,self.pattern.patwait[l])
 
     def setwaittime(self,l,t):
         self.pattern.patwaittime[l]=t
+        print("waittime",l,t,self.pattern.patwaittime[l])
 
     def setwait(self,l,t):
-        self.pattern.patwait[l]=self.iaddr
-        self.pattern.patwaittime[l]=t
+        self.setwait(l)
+        self.setwaittime(l,t)
 
     
     def patInfo(self):
@@ -181,6 +190,7 @@ class pat:
         print("Nloop:",self.pattern.patnloop)
         print("Wait:",self.pattern.patwait)
         print("Waittime",self.pattern.patwaittime)
+        print("Words",self.pattern.word[self.pattern.word>0])
         print("########################################")
           
     def saveToFile(self,fname):
@@ -205,16 +215,8 @@ class pat:
 
     def load(self,d):
         from slsdet import Detector
-        print("writing",len(self.addrs),"words")
-        for i in range(len(self.addrs)):
-            d.setPatternWord(self.addrs[i],self.words[i])
-            d.setPatternLoopAddresses(-1,self.start,self.LineN-1)
-        for i in range(3):
-            d.setPatternLoopAddresses(i,self.loops[i].start,self.loops[i].stop)
-            d.setPatternLoopCycles(i,self.loops[i].n)
-            d.setPatternWaitAddr(i,self.waits[i].addr)
-            d.setPatternWaitTime(i,self.waits[i].wtime)
-    
+        print("Loading pattern")
+        d.setPattern(self.pattern)
 
 ######################################
 #I/O functions
