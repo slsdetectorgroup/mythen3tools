@@ -75,6 +75,7 @@ class pat:
         self.pattern.patlimits[1]=self.iaddr
         print("pw",self.iaddr,self.pattern.word[self.iaddr])
         self.iaddr+=1
+        self.pattern.word[self.iaddr]=self.pattern.word[self.iaddr-1]
 
     def PW(self,verbose=0):
         self.pw(verbose)

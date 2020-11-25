@@ -44,13 +44,13 @@ else:
 
 
 
-"""
 
 print('DIGITAL PULSING')
 npuls=[8,5,3]
 digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,8,5,3)
 print('done')
 
+"""
 
 npu=1000
 smin=2000

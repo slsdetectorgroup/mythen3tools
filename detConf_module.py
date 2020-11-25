@@ -511,11 +511,11 @@ def testSerialInPattern(val):
     p.SB(dbit_ena);
     p.setnloop(0,24);
     p.setstartloop(0);
-    #p.SB(clk)
+    p.SB(clk)
+    p.PW()
+    p.CB(clk)
     #p.PW()
-    #p.CB(clk)
-    #p.PW()
-    p.CLOCK(clk);
+    #p.CLOCK(clk);
     p.setstoploop(0);
     p.PW()
     p.CB(dbit_ena);
@@ -622,9 +622,11 @@ def testSerialIn(d,val):
     errorMask=0
     for i in range(NCHIPS*NSEROUT):
         if serout[i]!=val:
-            print("serout",i,"read",serout[i],"instead of",val)
+            print("serout",i,"read", hexFormat(serout[i],8),"instead of",hexFormat(val,8))
             errorMask|=(1<<i)
 
+    d.clkdiv[0]=10
+    d.clkdiv[2]=10
     return errorMask
     
 
