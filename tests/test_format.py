@@ -34,3 +34,10 @@ def test_binFormat_nob():
 def test_decFormat():
     assert m3.decFormat(5, 0) == "5"
     assert m3.decFormat(53, 5) == "00053"
+
+
+def test_hex_formatting():
+    assert m3.to_hex(5, width = 4) == '0x0005'
+
+
+

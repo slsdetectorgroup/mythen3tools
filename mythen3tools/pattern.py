@@ -1,7 +1,7 @@
 
 from slsdet import Detector, patternParameters
-from mythen3tools.bits import setbit, clearbit
-from mythen3tools.format import hexFormat, hexFormat_nox, binFormat, binFormat_nob, decFormat
+from .bits import setbit, clearbit
+from .format import hexFormat, hexFormat_nox, binFormat, binFormat_nob, decFormat
 import numpy as np
 
 
@@ -30,7 +30,8 @@ class pat:
 
     def pw(self,verbose=0):
         if verbose==1:
-            print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[self.iaddr],16))
+            print(f'{self.iaddr:#06x} {self.pattern.word[self.iaddr]:#018x}')
+            # print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[self.iaddr],16))
         self.pattern.patlimits[1]=self.iaddr
         print("pw",self.iaddr,self.pattern.word[self.iaddr])
         self.iaddr+=1
