@@ -30,8 +30,7 @@ class pat:
 
     def pw(self,verbose=0):
         if verbose==1:
-            print(f'{self.iaddr:#06x} {self.pattern.word[self.iaddr]:#018x}')
-            # print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[self.iaddr],16))
+            print(f'{self.iaddr:#06x} {self.pattern.word[self.iaddr]:#018x}') 
         self.pattern.patlimits[1]=self.iaddr
         print("pw",self.iaddr,self.pattern.word[self.iaddr])
         self.iaddr+=1
@@ -174,10 +173,9 @@ class pat:
         f.close()
         
 
-    def load(self,d):
-        from slsdet import Detector
-        print("Loading pattern")
-        d.setPattern(self.pattern)
+    def load(self,det):
+        print("Loading pattern onto detector")
+        det.setPattern(self.pattern)
 
 ######################################
 #I/O functions

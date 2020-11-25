@@ -19,10 +19,8 @@ d.stopReceiver()
 d.rx_zmqstream=1
 d.rx_zmqfreq=1
 
-zmqip=d.rx_zmqip
-zmqport=d.rx_zmqport
-zmqstr="tcp://"+str(zmqip)+":"+str(zmqport)
-rx = m3.ZmqReceiver(zmqstr)
+
+rx = m3.ZmqReceiver(f"tcp://{d.zmqip}:{d.zmqport}")
 
 d.counters=[0,1,2]
 n_counters=len(d.counters)
