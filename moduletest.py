@@ -1,5 +1,5 @@
 from slsdet import Mythen3
-import mythen3tools as m3
+import patterntools.zmqreceiver import ZmqReceiver
 from detConf_module import *
 import numpy as np
 from slsdet.lookup import view, find
@@ -19,7 +19,7 @@ d.rx_zmqstream=1
 d.rx_zmqfreq=1
 
 
-rx = m3.ZmqReceiver(f"tcp://{d.zmqip}:{d.zmqport}")
+rx = ZmqReceiver(f"tcp://{d.zmqip}:{d.zmqport}")
 
 d.counters=[0,1,2]
 n_counters=len(d.counters)

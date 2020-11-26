@@ -10,7 +10,7 @@ import sys
 
 #sys.path.append('/afs/.psi.ch/project/sls_det_software/andrae/pythonScripts/includeBasics/')
 
-from mythen3tools import pat
+from patterntools import pat
 import numpy as np
 
 
