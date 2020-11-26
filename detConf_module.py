@@ -381,14 +381,10 @@ def analogPulsingPattern(*args):
     print(csr)
     setChipStatusRegister(p,csr)
     
-   
-
     #SELALLSTRIPS(p,31)
     if n3!=n2:
         n3=n2
         print("forced pulses on counter3=pulses on counter2")
-
-
 
     #DIGITAL PULSING SEQUENCE
     n=np.array([n1,n2,n3])
@@ -436,7 +432,7 @@ def analogPulsingPattern(*args):
             p.REPEAT(5)
             p.SB(pulse)
             p.PW()
-            p.setwaittime(1,10000); #wait time - can be changed dynamically
+            p.setwaittime(1,1000); #wait time - can be changed dynamically
             p.setwaitpoint(1); #set wait points
             p.PW()
             p.CB(EN1);
@@ -445,7 +441,7 @@ def analogPulsingPattern(*args):
             p.REPEAT(5)
             p.CB(pulse)
             p.PW()
-            p.setwaittime(2,10000); #wait time - can be changed dynamically
+            p.setwaittime(2,1000); #wait time - can be changed dynamically
             p.setwaitpoint(2); #set wait points
             p.REPEAT(2)
             p.setstoploop(i);
@@ -643,8 +639,13 @@ def testDigitalPulsing(d, rx, *n):
     d.startPattern()
     d.startReceiver()
     d.readout()
-    data, header = rx.receive_one_frame()
     d.stopReceiver()
+    for i in range(d.rx_framescaught+1):
+        dd, header = rx.receive_one_frame()
+        if dd is None:
+            break
+        data=dd
+        #print(header)
     errorMask=0
     chipMask=0
     nch=np.int(len(data)/3)
@@ -662,8 +663,18 @@ def analogPulsingScan(d, rx,  npu, threshold):
     counters=d.counters
     ncol=1280*len(counters)
     nrow = len(threshold)
+    npu0=0
+    npu1=0
+    npu2=0
     
-    pp=analogPulsingPattern(npu,npu,npu)
+    if 0 in counters:
+        npu0=npu
+    if 1 in counters:
+        npu1=npu
+    if 2 in counters:
+        npu2=npu
+        
+    pp=analogPulsingPattern(npu0,npu1,npu2)
     pp.load(d)
     data = np.zeros((nrow,ncol), dtype =  to_dtype(d.dr))
     d.startReceiver()

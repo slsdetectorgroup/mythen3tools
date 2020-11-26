@@ -27,11 +27,12 @@ class ZmqReceiver:
         if header["data"]>0:
             buff = self.socket.recv()
             #print(len(buff),to_dtype(header["bitmode"]))
-            data = np.frombuffer(buff, dtype=to_dtype(header["bitmode"]))
-            print("ok")
-            return data, header
-        else:
-            return None, header
+            if  header["completeImage"]>0:
+                data = np.frombuffer(buff, dtype=to_dtype(header["bitmode"]))
+                #print("ok")
+                return data, header
+            
+        return None, header
 
 
     def disconnect(self):

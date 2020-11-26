@@ -73,7 +73,7 @@ class pat:
         if verbose==1:
             print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[self.iaddr],16))
         self.pattern.patlimits[1]=self.iaddr
-        print("pw",self.iaddr,self.pattern.word[self.iaddr])
+        #print("pw",self.iaddr,self.pattern.word[self.iaddr])
         self.iaddr+=1
         self.pattern.word[self.iaddr]=self.pattern.word[self.iaddr-1]
 
@@ -152,32 +152,32 @@ class pat:
 
     def setnloop(self,l,reps):
         self.pattern.patnloop[l]=reps
-        print("patnloop",l,reps,self.pattern.patnloop[l])
+        #print("patnloop",l,reps,self.pattern.patnloop[l])
 
     def setstartloop(self,l):
         self.pattern.patloop[l*2]=self.iaddr
-        print("patstart",l,self.iaddr,self.pattern.patloop[l*2])
+        #print("patstart",l,self.iaddr,self.pattern.patloop[l*2])
 
     def setstoploop(self,l):
         self.pattern.patloop[l*2+1]=self.iaddr
-        print("patstop",l,self.iaddr,self.pattern.patloop[l*2+1])
+        #print("patstop",l,self.iaddr,self.pattern.patloop[l*2+1])
         
 
     def setstart(self,l):
         self.pattern.patlimits[0]=self.iaddr
-        print("start",self.iaddr,self.pattern.patlimits[0])
+        #print("start",self.iaddr,self.pattern.patlimits[0])
 
     def setstop(self,l):
         self.pattern.patlimits[1]=self.iaddr
-        print("stop",self.iaddr,self.pattern.patlimits[1])
+        #print("stop",self.iaddr,self.pattern.patlimits[1])
         
     def setwaitpoint(self,l):
         self.pattern.patwait[l]=self.iaddr
-        print("wait",l,self.iaddr,self.pattern.patwait[l])
+        #print("wait",l,self.iaddr,self.pattern.patwait[l])
 
     def setwaittime(self,l,t):
         self.pattern.patwaittime[l]=t
-        print("waittime",l,t,self.pattern.patwaittime[l])
+        #print("waittime",l,t,self.pattern.patwaittime[l])
 
     def setwait(self,l,t):
         self.setwait(l)
