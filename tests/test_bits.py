@@ -1,4 +1,4 @@
-from mythen3tools.bits import clearbit, clearbit_arr, setbit, setbit_arr
+from patterntools.bits import clearbit, clearbit_arr, setbit, setbit_arr
 import numpy as np
 
 
