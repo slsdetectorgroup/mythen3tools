@@ -432,7 +432,7 @@ def analogPulsingPattern(*args):
             p.REPEAT(5)
             p.SB(pulse)
             p.PW()
-            p.setwaittime(1,1000); #wait time - can be changed dynamically
+            p.setwaittime(1,3000); #wait time - can be changed dynamically
             p.setwaitpoint(1); #set wait points
             p.PW()
             p.CB(EN1);
@@ -441,7 +441,7 @@ def analogPulsingPattern(*args):
             p.REPEAT(5)
             p.CB(pulse)
             p.PW()
-            p.setwaittime(2,1000); #wait time - can be changed dynamically
+            p.setwaittime(2,3000); #wait time - can be changed dynamically
             p.setwaitpoint(2); #set wait points
             p.REPEAT(2)
             p.setstoploop(i);
@@ -591,6 +591,10 @@ def appendReadoutPattern(p):
 ##########################################################################################
 def testSerialIn(d,val):
     pp=testSerialInPattern(val)
+
+    v0=d.clkdiv[0]
+    v2=d.clkdiv[2]
+
     d.clkdiv[0]=40
     d.clkdiv[2]=40
     pp.load(d)
@@ -621,8 +625,8 @@ def testSerialIn(d,val):
             print("serout",i,"read", hexFormat(serout[i],8),"instead of",hexFormat(val,8))
             errorMask|=(1<<i)
 
-    d.clkdiv[0]=10
-    d.clkdiv[2]=10
+    d.clkdiv[0]=v0
+    d.clkdiv[2]=v2
     return errorMask
     
 
