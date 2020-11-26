@@ -1,8 +1,7 @@
 from slsdet import Mythen3
+import mythen3tools as m3
 from detConf_module import *
-import pattern
 import numpy as np
-from zmqreceiver import *
 from slsdet.lookup import view, find
 import plot_scan as psc 
 import fit_scurve as fsc
@@ -19,10 +18,8 @@ d.stopReceiver()
 d.rx_zmqstream=1
 d.rx_zmqfreq=1
 
-zmqip=d.rx_zmqip
-zmqport=d.rx_zmqport
-zmqstr="tcp://"+str(zmqip)+":"+str(zmqport)
-rx = ZmqReceiver(zmqstr)
+
+rx = m3.ZmqReceiver(f"tcp://{d.zmqip}:{d.zmqport}")
 
 d.counters=[0,1,2]
 n_counters=len(d.counters)

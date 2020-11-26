@@ -1,50 +1,9 @@
 
 from slsdet import Detector, patternParameters
+from .bits import setbit, clearbit
+from .format import hexFormat, hexFormat_nox, binFormat, binFormat_nob, decFormat
 import numpy as np
 
-####FORMATTING FUNCTIONS########################################
-def hexFormat_nox(val,fill):
-    v=hex(val)  #hexadecimal value
-    v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    return v
-
-def hexFormat(val,fill):
-    v=hex(val)  #hexadecimal value
-    v=(v.lstrip('-0x')).rstrip('L')  #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    v='0x'+v #puts back 0x
-    return v
-
-def binFormat_nob(val,fill):
-    v=bin(val)  #binary value
-    v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    return v
-
-def binFormat(val,fill):
-    v=bin(val)  #binary value
-    v=(v.lstrip('-0b')).rstrip('L')   #remove leading 0x and - if there and trailing L
-    v=v.zfill(fill) #inserts zeros at the beginning
-    v='0b'+v #puts back 0b
-    return v
-
-def decFormat(val,fill):
-    v=str(val)  #decimal value
-    v=v.zfill(fill) #inserts zeros at the beginning
-    return v
-
-
-def setbit(bit,word):
-    #maskBit=1<<bit
-    word = np.int64(word) | np.int64(1<<bit)
-    return word
-
-def clearbit(bit,word):
-    #maskBit=(~(1<<bit))
-    word = np.int64(word) & np.int64(~(1<<bit))
-    return word
-        
 
 class pat:
 #this is a "local style" class
@@ -71,7 +30,7 @@ class pat:
 
     def pw(self,verbose=0):
         if verbose==1:
-            print(hexFormat(self.iaddr,4)+' '+hexFormat(self.pattern.word[self.iaddr],16))
+            print(f'{self.iaddr:#06x} {self.pattern.word[self.iaddr]:#018x}') 
         self.pattern.patlimits[1]=self.iaddr
         #print("pw",self.iaddr,self.pattern.word[self.iaddr])
         self.iaddr+=1
@@ -214,10 +173,9 @@ class pat:
         f.close()
         
 
-    def load(self,d):
-        from slsdet import Detector
-        print("Loading pattern")
-        d.setPattern(self.pattern)
+    def load(self,det):
+        print("Loading pattern onto detector")
+        det.setPattern(self.pattern)
 
 ######################################
 #I/O functions

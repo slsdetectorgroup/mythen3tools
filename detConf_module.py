@@ -10,10 +10,10 @@ import sys
 
 #sys.path.append('/afs/.psi.ch/project/sls_det_software/andrae/pythonScripts/includeBasics/')
 
-from pattern import *
+from mythen3tools import pat
 import numpy as np
 
-from zmqreceiver import *
+
 
 print("IMPORTING DETECTOR CONFIGURATION FILE FOR MYTHEN 3.0 MODULE")
 
