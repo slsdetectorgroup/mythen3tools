@@ -643,7 +643,7 @@ def testDigitalPulsing(d, rx, *n):
     nodata=1
     while nodata>0:
         pp=digitalPulsingPattern(npu)
-       # pp.load(d)
+        pp.load(d)
         d.startPattern()
         d.startReceiver()
         d.readout()
@@ -704,7 +704,7 @@ def analogPulsingScan(d, rx,  npu, threshold):
             break
         if header["frameIndex"]<len(threshold):
             data[header["frameIndex"]]=dd
-        #print(i,th,"ok")
+        print(i,th,"ok")
     #rx.receive_stop_packet()
     #rx.receive_one_frame()
     return data

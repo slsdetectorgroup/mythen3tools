@@ -55,11 +55,11 @@ if len(good)==0:
     print("no good offset found")
 else:
     for i in range(len(good)):
-        print(i,"GOOD OFFSET IS",hex(good[i]),"PHASE",hex(goodph[i]))
+        print(i,"GOOD OFFSET IS",hex(good[i]),"PHASE",goodph[i])
     d.writeRegister(0x110,good[0])
     d.setClockPhaseinDegrees(1,goodph[0])
-
-    d.fname='testOff'
+"""
+    d.fname='testOff_clkdiv'+str(clkdiv)+"_off"+str(hex(good[0]))+"_ph"+str(goodph[0])
     npu=100
     smin=2000
     smax=800
@@ -83,7 +83,7 @@ else:
     d.dacs.vth2=2800
     d.dacs.vth3=2800
         
-    d.counters=[0,1,2]
+    d.counters=[0]
     
     d.fwrite=1
     d.fname=ff+'_clk'+str(clkdiv)
@@ -97,3 +97,4 @@ else:
     fig0.show()
 
 
+"""
