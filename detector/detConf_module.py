@@ -12,6 +12,7 @@ import sys
 
 from patterntools import pat
 import numpy as np
+from patterntools.zmqreceiver import to_dtype,ZmqReceiver
 
 
 
@@ -354,7 +355,7 @@ def digitalPulsingPattern(*args):
             nn+=nl[i]
     p.REPEAT(5)
     storeCounters(p)
-    p.patInfo()
+    #.patInfo()
     return p
 
 def analogPulsingPattern(*args):
@@ -383,8 +384,9 @@ def analogPulsingPattern(*args):
     
     #SELALLSTRIPS(p,31)
     if n3!=n2:
-        n3=n2
-        print("forced pulses on counter3=pulses on counter2")
+        if n2>0:
+            n3=n2
+            print("forced pulses on counter3=pulses on counter2")
 
     #DIGITAL PULSING SEQUENCE
     n=np.array([n1,n2,n3])
@@ -441,7 +443,7 @@ def analogPulsingPattern(*args):
             p.REPEAT(5)
             p.CB(pulse)
             p.PW()
-            p.setwaittime(2,3000); #wait time - can be changed dynamically
+            p.setwaittime(2,1000); #wait time - can be changed dynamically
             p.setwaitpoint(2); #set wait points
             p.REPEAT(2)
             p.setstoploop(i);
@@ -455,7 +457,7 @@ def analogPulsingPattern(*args):
 
     p.REPEAT(5)
     storeCounters(p)
-    p.patInfo()
+    #.patInfo()
     return p
 
 def exposePattern():
@@ -483,7 +485,7 @@ def exposePattern():
     p.CB(EN3);
     p.REPEAT(5)
     storeCounters(p)
-    p.patInfo()
+    #.patInfo()
     return p
 
 def testSerialInPattern(val):
@@ -517,7 +519,7 @@ def testSerialInPattern(val):
     p.CB(dbit_ena);
     p.PW();
 
-    p.patInfo()
+    #.patInfo()
     return p
 
 
@@ -566,7 +568,7 @@ def appendReadoutPattern(p):
     p.CLOCKS(clk,19);
     #The last clock cycle has to be written explicitly 
     #To properly place the setstoploop
-    p.patInfo()
+    ###p.patInfo()
     p.SB(clk);
     p.PW();
     p.setstoploop(2);
@@ -579,7 +581,7 @@ def appendReadoutPattern(p):
     p.CB(dbit_ena);
     p.PW();
     print(p.LineN)
-    p.patInfo()
+    #p.patInfo()
     return p
 
 
@@ -638,17 +640,21 @@ def testDigitalPulsing(d, rx, *n):
     elif len(n) == 3:
         npu=n
     
-    pp=digitalPulsingPattern(npu)
-    pp.load(d)
-    d.startPattern()
-    d.startReceiver()
-    d.readout()
-    d.stopReceiver()
-    for i in range(d.rx_framescaught+1):
-        dd, header = rx.receive_one_frame()
-        if dd is None:
-            break
-        data=dd
+    nodata=1
+    while nodata>0:
+        pp=digitalPulsingPattern(npu)
+       # pp.load(d)
+        d.startPattern()
+        d.startReceiver()
+        d.readout()
+        d.stopReceiver()
+    
+        for i in range(d.rx_framescaught+1):
+            dd, header = rx.receive_one_frame()
+            if dd is None:
+                break
+            data=dd
+            nodata=0
         #print(header)
     errorMask=0
     chipMask=0
@@ -656,7 +662,7 @@ def testDigitalPulsing(d, rx, *n):
     for ich in range(nch):
         for ic in range(3):
             if data[ich*3+ic]!=npu[ic]:
-                print("Channel",ich,"Counter",ic,"read",data[ich*3+ic],"instead of",npu[ic]);
+                print("Channel",ich,"Counter",ic,"read",hex(data[ich*3+ic]),"instead of",hex(npu[ic]));
                 errorMask+=1
                 ichip=np.int(ich/128)
                 chipMask|=(1<<ichip)

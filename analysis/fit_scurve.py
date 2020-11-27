@@ -145,7 +145,7 @@ def fit_all(thresholds,data):
     #print(noise.shape)
     #print(ampl.shape)
     #print(cs.shape)
-    fig,ax=plt.subplots()
+    #fig,ax=plt.subplots()
     print(data.shape[1])
     ibad=0
     for i in range(data.shape[1]):
@@ -183,7 +183,7 @@ def fit_all(thresholds,data):
             
          #else:
              #print(i,"Could not fit ")
-    fig.show()
+    #fig.show()
     return flex,noise,ampl,cs,counts
 
 """

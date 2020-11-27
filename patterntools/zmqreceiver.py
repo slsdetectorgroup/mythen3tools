@@ -20,9 +20,10 @@ class ZmqReceiver:
         self.socket = self.context.socket(zmq.SUB)
         self.connect()
 
-    def receive_one_frame(self):
+    def receive_one_frame(self,verbose=0):
         header = self.socket.recv_json()
-        print(header["data"],header["frameIndex"])
+        if verbose:
+            print(header["data"],header["frameIndex"])
         #print(header)
         if header["data"]>0:
             buff = self.socket.recv()
