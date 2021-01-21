@@ -6,6 +6,7 @@ import read_mythen as my3
 import math
 from lmfit import Model,Parameters,Minimizer, report_fit
 from lmfit.models import LinearModel
+from scipy.signal import argrelextrema
 
 #############################################################
 ####### Need to work on fitting range and start parameters
@@ -49,6 +50,8 @@ def init_params(flex0, ampl0):
     gmodel.set_param_hint('pedslope',value=0, vary=False )
     gmodel.set_param_hint('flex',value=flex0, min=800, max=2800)
     gmodel.set_param_hint('noise',value=noise0, min=5, max=200)
+    if ampl0<100:
+        ampl0=100
     gmodel.set_param_hint('amplitude',value=ampl0,min=0.1*ampl0,max=2*ampl0)
     gmodel.set_param_hint('chargesharing',value=cs0,min=0.0001,max=0.01)
     params = gmodel.make_params()
@@ -70,9 +73,8 @@ def init_fix_ampl(val):
 
 def fit_scurve(x, y, params=None, e=None):
     global gmodel
-    if params is None:
-        params=gmodel.make_params()#gmodel.param_hints
-        
+    
+    
    # for pname, par in params.items():
     #    print(pname, par)
     """
@@ -89,30 +91,48 @@ def fit_scurve(x, y, params=None, e=None):
     data=y.astype(np.float64)
     imin=0
     imax=thresholds.shape[0]-1
+    sstep=thresholds[1]-thresholds[0]
+
+    imin=0
+    imax=thresholds.shape[0]-1
     #mm=0
     #print(gmodel.param_hints["amplitude"]["max"])
+    counts0=gmodel.param_hints["amplitude"]["value"]
+    cmax=gmodel.param_hints["amplitude"]["max"]
     flex0=-1
+    ##########################################################################################
+    #########FINDING START PARAMETERS
+    ##########################################################################################
+
     if (thresholds[imin]>thresholds[imax]):
         imax=0
-        while data[imax]<=gmodel.param_hints["amplitude"]["max"] and imax<thresholds.shape[0]-1:
+        while data[imax]<=cmax and imax<thresholds.shape[0]-1:
             imax+=1
-            if data[imax]<gmodel.param_hints["amplitude"]["value"]:
+            if data[imax]<counts0:
                 #if flex0<0:
                 flex0=thresholds[imax]
-        if data[imax]>=gmodel.param_hints["amplitude"]["max"]:
+        if data[imax]>=cmax:
             vv=np.where(thresholds>thresholds[imax]+10)
-            imax=vv[0][-1]
+            if len(vv[0]>0):
+                imax=vv[0][-1]
+            else:
+                imax=-1
+                #imax=vv[-1]
             #print(imax,vv)
     else:
         imin=thresholds.shape[0]-1
-        while data[imin]<=gmodel.param_hints["amplitude"]["max"] and imin>0:
+        while data[imin]<=cmax and imin>0:
             imin-=1
-            if data[imin]<gmodel.param_hints["amplitude"]["value"]:
+            if data[imin]<counts0:
                 #if flex0<0:
                 flex0=thresholds[imin]
-        if data[imin]>=gmodel.param_hints["amplitude"]["max"]:
+        if data[imin]>=cmax:
             vv=np.where(thresholds>thresholds[imin]+10)
-            imin=vv[0][0]
+            if len(vv[0])>0:
+                imin=vv[0][0]
+            else:
+                imin=0
+                #imin=vv[0]
             #print(imin,vv)
     #print("Fitting range:",thresholds[imin],thresholds[imax])
     
@@ -124,8 +144,56 @@ def fit_scurve(x, y, params=None, e=None):
         gmodel.set_param_hint('flex',value=flex0, min=fmi, max=fma)
     #else:
         #print("--",flex0,thresholds[imin],thresholds[imax-1])
+    ####################################################################################
+   
+    """
+    #########
+    ## Way to automatically find start parameters
+    ########
+    thrmin,flex0,counts0=find_start_param(data,thresholds[0],thresholds[-1],sstep)
+    gmodel.set_param_hint('flex',value=flex0, min=flex0/2, max=flex0*2+1)
+    gmodel.set_param_hint('amplitude',value=counts0, min=counts0/5., max=counts0+1)
+    tt=np.where(thresholds>thrmin)
+    if sstep>0:
+        imin=tt[0][0]
+    else:
+        imax=tt[-1][-1]
+    good=1
+    if thrmin==0:
+        #print("BAD")
+        good=0
+    """
     params = gmodel.make_params()
-    result = gmodel.fit(data[imin:imax], params, x=thresholds[imin:imax], weights=w[imin:imax])#, method='nelder')
+    #print(data[imin:imax].shape,thresholds[imin:imax].shape)
+    
+    while imax-imin<=len(params.valuesdict()):
+        if imin>0:
+            imin-=1
+        if imax<thresholds.shape[0]-1:
+            imax+=1
+    result = gmodel.fit(data[imin:imax], params, x=thresholds[imin:imax], weights=w[imin:imax])#, method='nelder') 
+    good=1
+    if not result.success:
+        #print("BAD1",thrmin,flex0,counts0)
+        good=0
+    """   else:
+        for pname, par in result.params.items():
+            if par.vary:
+                if par.value<par.min+0.001*par.min:
+                    #print("*m*",pname,par.value,par.min)
+                    good=0
+                elif par.value>par.max-0.001*par.max:
+                    #print("*M*",pname,par.value,par.max)
+                    good=0
+    """
+    if good==0:
+        #print("---")
+        #print("BAD1",thrmin,flex0,counts0)
+        """for pname, par in result.params.items():
+            if par.vary:
+                print("*m*",pname,par.value,par.min,par.max)
+        """
+
     return result
     #    print(result.fit_report())
 
@@ -146,7 +214,7 @@ def fit_all(thresholds,data):
     #print(ampl.shape)
     #print(cs.shape)
     #fig,ax=plt.subplots()
-    print(data.shape[1])
+    #print(data.shape[1])
     ibad=0
     for i in range(data.shape[1]):
          result=fit_scurve(thresholds,data[:,i],params)
@@ -173,9 +241,9 @@ def fit_all(thresholds,data):
                  cs[i]=result.params['chargesharing'].value
                  counts[i]=scurve(flex[i],0, 0, flex[i], noise[i], ampl[i], cs[i])
                  #print(i,flex[i],noise[i],ampl[i],cs[i],result.chisqr)
-             #else:
+             else:
                  #plot_fit(thresholds,data[:,i],result,ax,fig)
-                 #ibad+=1
+                 ibad+=1
                  #if ibad>10:
                      #break;
                  #print(i,"Bad fit",result.params['flex'].value,result.params['noise'].value,result.params['amplitude'].value,result.params['chargesharing'].value,result.chisqr)
@@ -184,6 +252,7 @@ def fit_all(thresholds,data):
          #else:
              #print(i,"Could not fit ")
     #fig.show()
+    print("Could not fit",ibad,"channels")
     return flex,noise,ampl,cs,counts
 
 """
@@ -287,3 +356,83 @@ def encal_all(ens,flex):
         gain[ich]=result.params['slope'].value
         offset[ich]=result.params['intercept'].value
     return gain,offset
+
+def find_start_param(data,smin,smax,sstep):
+
+    if data.ndim>1:
+        dd=np.median(data, axis=1)
+        #dd=np.sum(data,axis=1)/data.shape[1]
+    else:
+        dd=data
+    thr=np.arange(smin,smax+sstep,sstep)
+    thr1=thr[1:]
+    ns=int(len(thr1)/20)
+    nn=len(thr1)
+    lmax=[]
+    lmin=[]
+    sp=smooth(np.diff(dd),ns)
+    #sp=np.diff(dd)
+    ll=[]
+    LL=[]
+    nn=sp.shape[0]
+    lmax=argrelextrema(sp, np.greater)
+    lmin=argrelextrema(sp, np.less)
+    ll=lmin[0]
+    LL=lmax[0]
+    nn=len(LL)
+    nn1=len(ll)
+    ii=0
+    #print(ii,"---",nn,nn1)
+
+    if nn>0 and nn1>0:
+        while nn>3:
+            #print(ii,"***",sp[LL],np.max(sp[LL]))
+            lmax=argrelextrema(sp[LL], np.greater)
+            nn=len(lmax[0])
+            if nn>0:
+                LL=LL[lmax[0]]
+            else:
+                nn=len(LL)
+                break
+            ii=ii+1
+        #print(ii,"---",nn)
+        ii=0
+        
+        while nn1>50:
+            #print(ii,"***",sp[ll],sp[ll[-1]])
+            lmin=argrelextrema(sp[ll], np.less)
+            nn1=len(lmin[0])
+            if nn1>0:
+                ll=ll[lmin[0]]
+            else:
+                nn1=len(ll)
+                break
+            ii=ii+1
+        #print(ii,"===",nn1)
+
+        if thr1[0]<thr1[1]:
+            mm=ll[0]
+            LL1=LL[LL>mm]
+        else:
+            mm=ll[-1]
+            LL1=LL[LL<mm]
+
+        if len(LL1)==0:
+            LL1=LL
+
+        vv=np.max(sp[LL1])
+        aa=np.where(sp==vv)
+
+        if thr1[0]<thr1[1]:
+            MM=aa[0][-1]
+        else:
+            MM=aa[0][0]
+        return thr1[mm],thr1[MM],dd[mm]
+    
+    return 0,0,0
+
+
+def smooth(y, box_pts):
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth

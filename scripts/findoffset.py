@@ -7,16 +7,18 @@ import plot_scan as psc
 import fit_scurve as fsc
 import matplotlib.pyplot as plt
 import sys
+import time
 
 def changeClkdDiv(val,off=0):
     d.clkdiv[0]=val
     d.clkdiv[1]=val
     d.clkdiv[2]=val
     d.writeRegister(0x110,off)
+    time.sleep(1)
 
 d = Mythen3()
 
-##d.loadConfig('../slsDetectorPackageDeveloper/examples/my30module_standard.config')
+#d.loadConfig('/afs/psi.ch/user/b/bergamaschi/project/Anna/slsDetectorPackageDeveloper/examples/my30module_standard.config')
 #print(d.hostname)
 
 d.stopReceiver()
@@ -34,30 +36,48 @@ clkdiv=np.int(sys.argv[1])
 changeClkdDiv(clkdiv)
 
 d.fwrite=0
-print('DIGITAL PULSING')
+#print('DIGITAL PULSING',clkdiv)
 
 npuls=[0xaa,0xbb,0xcc]
 #for i in range (0,65536):
  #   print("pulsing",hex(i),d.clkdiv[0])
 good=[]
 goodph=[]
+semigood=[]
+semigoodph=[]
+semigoodmask=[]
 for i in range(4):
     for j in range(16):
         off=i | (j<<4)
         d.writeRegister(0x110,off)
-        for ph in np.arange(0,180+10,10):
+        #print(hex(off))
+        for ph in np.arange(0,360,10):
             d.setClockPhaseinDegrees(1,ph)
-            digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,npuls[0],npuls[1],npuls[2])
+            time.sleep(0.1)
+            digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,[npuls[0],npuls[1],npuls[2]],0)
             if digPulseErrorMask==0:
                 good.append(off)
                 goodph.append(ph)
-if len(good)==0:
-    print("no good offset found")
-else:
+                #print("--",hex(off),ph,hex(chipErrorMask),digPulseErrorMask)
+            elif chipErrorMask!=0x3ff:
+                semigood.append(off)
+                semigoodph.append(ph)
+                semigoodmask.append(chipErrorMask)
+                #print("--",hex(off),ph,hex(chipErrorMask),digPulseErrorMask)
+
+
+if len(good)>0:
+    #;
+    #print("no good offset found",clkdiv)
+#else:
     for i in range(len(good)):
-        print(i,"GOOD OFFSET IS",hex(good[i]),"PHASE",goodph[i])
-    d.writeRegister(0x110,good[0])
-    d.setClockPhaseinDegrees(1,goodph[0])
+        print(i,clkdiv,hex(good[i]),goodph[i])
+    """for i in range(len(semigood)):
+        print(i,"SEMIGOOD OFFSET IS",hex(semigood[i]),"PHASE",semigoodph[i],"--",hex(semigoodmask[i]))
+       """ 
+
+    #d.writeRegister(0x110,good[0])
+    #d.setClockPhaseinDegrees(1,goodph[0])
 """
     d.fname='testOff_clkdiv'+str(clkdiv)+"_off"+str(hex(good[0]))+"_ph"+str(goodph[0])
     npu=100

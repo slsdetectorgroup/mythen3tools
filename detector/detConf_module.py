@@ -7,7 +7,7 @@ Created on Oct 04 2019
 DETECTOR CONFIGURATION FILE FOR MYTHEN 3.0 MODULE
 """
 import sys
-
+import time
 #sys.path.append('/afs/.psi.ch/project/sls_det_software/andrae/pythonScripts/includeBasics/')
 
 from patterntools import pat
@@ -16,7 +16,7 @@ from patterntools.zmqreceiver import to_dtype,ZmqReceiver
 
 
 
-print("IMPORTING DETECTOR CONFIGURATION FILE FOR MYTHEN 3.0 MODULE")
+#print("IMPORTING DETECTOR CONFIGURATION FILE FOR MYTHEN 3.0 MODULE")
 
 
 NCHIPS=10
@@ -295,13 +295,13 @@ def storeCounters(p):
 def digitalPulsingPattern(*args):
     #if len(args) == 1:
     if np.array(args).shape[1] == 1:
-        print("1arg",np.array(args).shape)
+        #print("1arg",np.array(args).shape)
         n1=args[0][0] 
         n2=args[0][0]
         n3=args[0][0]
     #elif len(args) == 3:
     if np.array(args).shape[1] == 3:
-        print("3args",np.array(args).shape)
+        #print("3args",np.array(args).shape)
         n1=args[0][0]
         n2=args[0][1] 
         n3=args[0][2]
@@ -313,7 +313,7 @@ def digitalPulsingPattern(*args):
     csr=0 #content of chip status register #n (18 bits)
     csr=csr|(1<<CSR_dpulse)
     #csr=p.setbit(CSR_dpulse,csr)    # enable pulsing of the counter
-    print(csr)
+    #print(csr)
     setChipStatusRegister(p,csr)
     
     #DIGITAL PULSING SEQUENCE
@@ -327,7 +327,7 @@ def digitalPulsingPattern(*args):
             nl[i]=min(n[n>0])
         else:
             nl[i]=0
-        print(i,"*",n,"*",nl[i])
+        #print(i,"*",n,"*",nl[i])
         n=n-nl[i]
     n=n1    
     nn=0
@@ -335,16 +335,16 @@ def digitalPulsingPattern(*args):
         if nl[i]>0:
             p.setnloop(i,nl[i]); #number of pulses 
             p.setstartloop(i);
-            print(n,nn)
+            #print(n,nn)
             if n[0]-nn>0:
                 p.SB(EN1);# select here which counters have to be pulsed 
-                print(i,'en1')
+                #print(i,'en1')
             if n[1]-nn>0:
                 p.SB(EN2);
-                print(i,'en2')
+                #print(i,'en2')
             if n[2]-nn>0:
                 p.SB(EN3);
-                print(i,'en3')
+                #print(i,'en3')
             p.REPEAT(5)
             p.CB(EN1);
             p.CB(EN2);
@@ -361,13 +361,13 @@ def digitalPulsingPattern(*args):
 def analogPulsingPattern(*args):
     if len(args) == 1:
     #if np.array(args).shape[1] == 1:
-        print("1arg",np.array(args).shape)
+        #print("1arg",np.array(args).shape)
         n1=args[0]
         n2=args[0]
         n3=args[0]
     elif len(args) == 3:
     #if np.array(args).shape[1] == 3:
-        print("3args",np.array(args).shape)
+        #print("3args",np.array(args).shape)
         n1=args[0]
         n2=args[1] 
         n3=args[2]
@@ -379,14 +379,14 @@ def analogPulsingPattern(*args):
     csr= CSR_default #content of chip status register #n (18 bits)
     csr=csr|(1<<CSR_apulse)
     #csr=p.setbit(CSR_dpulse,csr)    # enable pulsing of the counter
-    print(csr)
+    #print(csr)
     setChipStatusRegister(p,csr)
     
     #SELALLSTRIPS(p,31)
     if n3!=n2:
         if n2>0:
             n3=n2
-            print("forced pulses on counter3=pulses on counter2")
+            #print("forced pulses on counter3=pulses on counter2")
 
     #DIGITAL PULSING SEQUENCE
     n=np.array([n1,n2,n3])
@@ -399,7 +399,7 @@ def analogPulsingPattern(*args):
             nl[i]=min(n[n>0])
         else:
             nl[i]=0
-        print(i,"*",n,"*",nl[i])
+        #print(i,"*",n,"*",nl[i])
         n=n-nl[i]
     n=n1    
     nn=0    
@@ -413,22 +413,22 @@ def analogPulsingPattern(*args):
 
     for i in range(len(n)-1):
         if nl[i]>0:
-            print(n,nn)
+            #print(n,nn)
             p.setnloop(i,nl[i]); #number of pulses 
             p.setstartloop(i);
             if n[0]-nn>0:
                 p.SB(EN1);# select here which counters have to be pulsed 
-                print(i,'en1')
+                #print(i,'en1')
             else:
                  p.CB(EN1);
             if n[1]-nn>0:
                 p.SB(EN2);
-                print(i,'en2')
+                #print(i,'en2')
             else:
                 p.CB(EN2);
             if n[2]-nn>0:
                 p.SB(EN3);
-                print(i,'en3')
+                #print(i,'en3')
             else:
                 p.CB(EN3);
             p.REPEAT(5)
@@ -468,7 +468,7 @@ def exposePattern():
     csr= CSR_default #content of chip status register #n (18 bits)
     #csr=csr|(1<<CSR_apulse)
     #csr=p.setbit(CSR_dpulse,csr)    # enable pulsing of the counter
-    print(hex(csr))
+    #print(hex(csr))
     setChipStatusRegister(p,csr)
     
     resetChip(p)#RESET CHIP
@@ -580,7 +580,7 @@ def appendReadoutPattern(p):
     p.CB(clk)
     p.CB(dbit_ena);
     p.PW();
-    print(p.LineN)
+    #print(p.LineN)
     #p.patInfo()
     return p
 
@@ -633,8 +633,8 @@ def testSerialIn(d,val):
     
 
 
-def testDigitalPulsing(d, rx, *n):  
-    
+def testDigitalPulsing(d, rx, n, verbose=0):  
+    #print(len(n))
     if len(n) == 1:
         npu=[n,n,n]
     elif len(n) == 3:
@@ -645,6 +645,7 @@ def testDigitalPulsing(d, rx, *n):
         pp=digitalPulsingPattern(npu)
         pp.load(d)
         d.startPattern()
+        time.sleep(0.1)
         d.startReceiver()
         d.readout()
         d.stopReceiver()
@@ -662,7 +663,8 @@ def testDigitalPulsing(d, rx, *n):
     for ich in range(nch):
         for ic in range(3):
             if data[ich*3+ic]!=npu[ic]:
-                print("Channel",ich,"Counter",ic,"read",hex(data[ich*3+ic]),"instead of",hex(npu[ic]));
+                if verbose>0:
+                    print("Channel",ich,"Counter",ic,"read",hex(data[ich*3+ic]),"instead of",hex(npu[ic]));
                 errorMask+=1
                 ichip=np.int(ich/128)
                 chipMask|=(1<<ichip)
@@ -708,3 +710,51 @@ def analogPulsingScan(d, rx,  npu, threshold):
     #rx.receive_stop_packet()
     #rx.receive_one_frame()
     return data
+"""
+CSR_spypads = 0
+CSR_invpol = 4
+CSR_dpulse = 5
+CSR_interp = 6
+CSR_C10pre = 7 #default
+CSR_pumprobe = 8
+CSR_apulse = 9
+CSR_C15sh = 10 
+CSR_C30sh = 11 #default
+CSR_C50sh = 12
+CSR_C225ACsh = 13 # Connects 225fF SHAPER AC cap (1: 225 to shaper, 225 to GND. 0: 450 to shaper) 
+CSR_C15pre = 14 
+
+CSR_default = (1<<CSR_C10pre ) | (1<< CSR_C30sh)
+"""
+
+def setDefaultMode(d):
+    p=pat()
+    setChipStatusRegister(p,CSR_default)
+    p.load(d)
+    d.startPattern()
+
+def setSuperHighGainMode(d):
+    p=pat()
+    setChipStatusRegister(p,0)#CSR_C225ACsh
+    p.load(d)
+    d.startPattern()
+
+def setPumpProbeMode(d):
+    p=pat()
+    setChipStatusRegister(p,CSR_default| (1<<CSR_pumprobe))
+    p.load(d)
+    d.startPattern()
+    
+def setInterpolationMode(d):
+    p=pat()
+    setChipStatusRegister(p,CSR_default| (1<<CSR_interp))
+    p.load(d)
+    d.startPattern()
+    
+
+def changeClkdDiv(d,val,off=0):
+    d.clkdiv[0]=val
+    d.clkdiv[1]=val
+    d.clkdiv[2]=val
+    d.writeRegister(0x110,off)
+

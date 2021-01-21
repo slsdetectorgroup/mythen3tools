@@ -7,15 +7,9 @@ import plot_scan as psc
 import fit_scurve as fsc
 import matplotlib.pyplot as plt
 
-def changeClkdDiv(val,off=0):
-    d.clkdiv[0]=val
-    d.clkdiv[1]=val
-    d.clkdiv[2]=val
-    d.writeRegister(0x110,off)
-
 d = Mythen3()
 
-d.loadConfig('../slsDetectorPackageDeveloper/examples/my30module_standard.config')
+#d.loadConfig('../../slsDetectorPackageDeveloper/examples/my30module_standard.config')
 #print(d.hostname)
 
 d.stopReceiver()
@@ -29,8 +23,8 @@ d.counters=[0,1,2]
 n_counters=len(d.counters)
 
 #using the module with long cables
-clkdiv=15
-changeClkdDiv(clkdiv)
+clkdiv=10
+changeClkdDiv(d,clkdiv)
 
 if clkdiv==10:
     d.writeRegister(0x110,0x80)
@@ -41,7 +35,6 @@ elif clkdiv==20:
 else:
     d.writeRegister(0x110,0x60)
 
-"""
 
 print('TEST SERIAL IN')
 val=0xbbbbbb
@@ -54,7 +47,6 @@ if serInErrorMask2|serInErrorMask1==0:
 else:
     print("serial IN test failed")
 
-"""
 
 d.fwrite=0
 print('DIGITAL PULSING')
@@ -62,21 +54,10 @@ print('DIGITAL PULSING')
 npuls=[0xaa,0xbb,0xcc]
 #for i in range (0,65536):
  #   print("pulsing",hex(i),d.clkdiv[0])
-good=[]
-for i in range(4):
-    for j in range(16):
-        off=i | (j<<4)
-        d.writeRegister(0x110,off)
-        digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,npuls[0],npuls[1],npuls[2])
-        if digPulseErrorMask==0:
-            good.append(off)
 
-if len(good)==0:
-    print("no good offset found")
-
-for i in range(len(good)):
-    print(i,"GOOD OFFSET IS",hex(good[i]))
-    d.writeRegister(0x110,good[0])
+        #d.writeRegister(0x110,off)
+digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,npuls,0)
+print("chip mask",hex(chipErrorMask),"total errors",digPulseErrorMask)
 
 
 

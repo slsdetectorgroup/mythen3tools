@@ -1,5 +1,5 @@
 
-from slsdet import Detector, patternParameters
+from slsdet import Detector, Pattern
 from .bits import setbit, clearbit
 from .format import hexFormat, hexFormat_nox, binFormat, binFormat_nob, decFormat
 import numpy as np
@@ -8,7 +8,7 @@ import numpy as np
 class pat:
 #this is a "local style" class
     def __init__(self):
-        self.pattern=patternParameters()
+        self.pattern=Pattern()
         self.iaddr=0
 
     ################################################################
@@ -31,7 +31,7 @@ class pat:
     def pw(self,verbose=0):
         if verbose==1:
             print(f'{self.iaddr:#06x} {self.pattern.word[self.iaddr]:#018x}') 
-        self.pattern.patlimits[1]=self.iaddr
+        self.pattern.limits[1]=self.iaddr
         #print("pw",self.iaddr,self.pattern.word[self.iaddr])
         self.iaddr+=1
         self.pattern.word[self.iaddr]=self.pattern.word[self.iaddr-1]
@@ -110,33 +110,33 @@ class pat:
     #        self.setclk(i)
 
     def setnloop(self,l,reps):
-        self.pattern.patnloop[l]=reps
-        #print("patnloop",l,reps,self.pattern.patnloop[l])
+        self.pattern.nloop[l]=reps
+        #print("patnloop",l,reps,self.pattern.nloop[l])
 
     def setstartloop(self,l):
-        self.pattern.patloop[l*2]=self.iaddr
-        #print("patstart",l,self.iaddr,self.pattern.patloop[l*2])
+        self.pattern.loop[l*2]=self.iaddr
+        #print("patstart",l,self.iaddr,self.pattern.loop[l*2])
 
     def setstoploop(self,l):
-        self.pattern.patloop[l*2+1]=self.iaddr
-        #print("patstop",l,self.iaddr,self.pattern.patloop[l*2+1])
+        self.pattern.loop[l*2+1]=self.iaddr
+        #print("patstop",l,self.iaddr,self.pattern.loop[l*2+1])
         
 
     def setstart(self,l):
-        self.pattern.patlimits[0]=self.iaddr
-        #print("start",self.iaddr,self.pattern.patlimits[0])
+        self.pattern.limits[0]=self.iaddr
+        #print("start",self.iaddr,self.pattern.limits[0])
 
     def setstop(self,l):
-        self.pattern.patlimits[1]=self.iaddr
-        #print("stop",self.iaddr,self.pattern.patlimits[1])
+        self.pattern.limits[1]=self.iaddr
+        #print("stop",self.iaddr,self.pattern.limits[1])
         
     def setwaitpoint(self,l):
-        self.pattern.patwait[l]=self.iaddr
-        #print("wait",l,self.iaddr,self.pattern.patwait[l])
+        self.pattern.wait[l]=self.iaddr
+        #print("wait",l,self.iaddr,self.pattern.wait[l])
 
     def setwaittime(self,l,t):
-        self.pattern.patwaittime[l]=t
-        #print("waittime",l,t,self.pattern.patwaittime[l])
+        self.pattern.waittime[l]=t
+        #print("waittime",l,t,self.pattern.waittime[l])
 
     def setwait(self,l,t):
         self.setwait(l)
@@ -145,27 +145,27 @@ class pat:
     
     def patInfo(self):
         print("### SUMMARY OF PATTERN PARAMETERS ###")
-        print("Pattern limits (patlimits):",self.pattern.patlimits) 
-        print("Loop:",self.pattern.patloop)
-        print("Nloop:",self.pattern.patnloop)
-        print("Wait:",self.pattern.patwait)
-        print("Waittime",self.pattern.patwaittime)
+        print("Pattern limits (patlimits):",self.pattern.limits) 
+        print("Loop:",self.pattern.loop)
+        print("Nloop:",self.pattern.nloop)
+        print("Wait:",self.pattern.wait)
+        print("Waittime",self.pattern.waittime)
         print("Words",self.pattern.word[self.pattern.word>0])
         print("########################################")
           
     def saveToFile(self,fname):
         pwords=''
-        for i in range(len(self.pattern.patlimits[2])):
+        for i in range(self.pattern.limits[1]):
             l='patword '+hexFormat(i,4)+' '+hexFormat(self.pattern.word[i],16)+'\n'
             pwords+=l
         for i in range(3):
-            l='patloop'+str(i)+' '++hexFormat(self.pattern.patloop[i*2],4)+' '+hexFormat(self.pattern.patloop[i*2+1],4)+'\n'+'patnloop'+str(i)+' '+str(self.pattern.patnloop[i])+'\n'
+            l='patloop'+str(i)+' '+hexFormat(self.pattern.loop[i*2],4)+' '+hexFormat(self.pattern.loop[i*2+1],4)+'\n'+'patnloop'+str(i)+' '+str(self.pattern.nloop[i])+'\n'
             pwords+=l
         for i in range(3):
-            l='patwait'+str(i)+' '+hexFormat(self.pattern.patwait[i].addr,4)+'\n'+'patwaittime'+str(i)+' '+str(self.pattern.patwaittime[i].wtime)+'\n'
+            l='patwait'+str(i)+' '+hexFormat(self.pattern.wait[i],4)+'\n'+'patwaittime'+str(i)+' '+str(self.pattern.waittime[i])+'\n'
             pwords+=l
         
-        l='patlimits '+hexFormat(self.pattern.patlimits[0],4)+' '+hexFormat(self.pattern.patlimits[1],4)+'\n'
+        l='patlimits '+hexFormat(self.pattern.limits[0],4)+' '+hexFormat(self.pattern.limits[1],4)+'\n'
         pwords+=l
 
         f=open(fname,'w')
@@ -174,7 +174,7 @@ class pat:
         
 
     def load(self,det):
-        print("Loading pattern onto detector")
+        #print("Loading pattern onto detector")
         det.setPattern(self.pattern)
 
 ######################################
