@@ -55,7 +55,7 @@ def init_params(flex0, ampl0):
     gmodel.set_param_hint('amplitude',value=ampl0,min=0.1*ampl0,max=2*ampl0)
     gmodel.set_param_hint('chargesharing',value=cs0,min=0.0001,max=0.01)
     params = gmodel.make_params()
-
+    return params
 
 def init_fix_cs(val):
     global gmodel
