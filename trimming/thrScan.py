@@ -12,10 +12,11 @@ import matplotlib.pyplot as plt
     ## use for many modules until fixed
 
 def acquire(d,rx,longwait=False):
-    d.timing=timingMode.TRIGGER_EXPOSURE 
+    #d.timing=timingMode.TRIGGER_EXPOSURE 
     d.startReceiver()
     d.startDetector()
-    time.sleep(0.1)
+    time.sleep(0.15)
+    print("here")
     #print("before:",d.status)
     i=0
     data=[]
@@ -27,14 +28,14 @@ def acquire(d,rx,longwait=False):
         #print(threshold[iframe])
         nodata=1
         #while nodata==1:
-        if longwait:
-            time.sleep(0.75)
-        while d.rx_framescaught==nf:
-            d.sendSoftwareTrigger()
-            time.sleep(d.exptime)
-            time.sleep(0.1)
-        #print(nf,"frames",d.rx_framescaught)
-        nf=d.rx_framescaught
+        #if longwait:
+            #time.sleep(0.75)
+       # while np.min(d.rx_framescaught)==nf:
+            #d.sendSoftwareTrigger()
+        time.sleep(d.exptime)
+            #time.sleep(0.15)
+        print(nf,"frames",d.rx_framescaught)
+        nf=np.min(d.rx_framescaught)
         #print(d.dacs.vth1,d.dacs.vth2,d.dacs.vth3,d.dacs.vtrim)
         for imod in range(len(d.hostname)):
             #print("imod",imod)
@@ -67,13 +68,13 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
     d.rx_zmqfreq=1
 
 
-    sp.enable=1
-    sp.startOffset=minthr
-    sp.stopOffset=maxthr
-    sp.stepSize=thrstep
-    sp.dacSettleTime_ns = int(50e6)
-    sp.dacInd=dac
-    threshold=np.arange(sp.startOffset, sp.stopOffset+sp.stepSize,sp.stepSize)
+    sp.enable=0
+    #sp.startOffset=minthr
+    #sp.stopOffset=maxthr
+    #sp.stepSize=thrstep
+    #sp.dacSettleTime_ns = int(50e6)
+    #sp.dacInd=dac
+    #threshold=np.arange(sp.startOffset, sp.stopOffset+sp.stepSize,sp.stepSize)
     
     
     nmod=len(d.hostname)
@@ -84,41 +85,59 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
     d.setScan(sp)
 
     
-    if dac==dacIndex.TRIMBIT_SCAN:
-        longwait=True
-    else:
-        longwait=False
+    #if dac==dacIndex.TRIMBIT_SCAN:
+    #    longwait=True
+    #else:
+    #    longwait=False
+    
+    data=[]
+    header=[]
+    nf0=0
+    d.startReceiver()
+    for ith in range(minthr,maxthr+thrstep,thrstep):
+        if dac==dacIndex.TRIMBIT_SCAN:
+            d.trimval=ith
+        if dac==dacIndex.VTH1:
+            d.dacs.vth1=ith
+        if dac==dacIndex.VTH2:
+            d.dacs.vth2=ith
+        if dac==dacIndex.VTH3:
+            d.dacs.vth3=ith
+        if dac==dacIndex.VTRIM:
+            d.dacs.vtrim=ith
+        
+        time.sleep(0.05)
+        d.startDetector()
+        #d.acquire()  
+        time.sleep(d.exptime)
+        while d.status != runStatus.IDLE:
+            time.sleep(0.01)
 
-    data,header=acquire(d,rx,longwait)
-    #print(len(data),len(header))
-    #print(header[0])
+        nf=np.min(d.rx_framescaught)
+        if nf>nf0:
+        #for iframe in range(nf):
+            nf0=nf
+            for imod in range(len(d.hostname)):
+                dd, hh = rx[imod].receive_one_frame()
+                #fn=hh["frameIndex"]
+                data.append(dd)
+                header.append(hh)
    
 
     for i in range(int(len(header)/nmod)):
         for imod in range(nmod):
             fn=header[imod+i*nmod]["frameIndex"]
-            #print(i,imod,fn)
             if data[imod+i*nmod] is not None:
                 if fn<data_thr.shape[1]:
                     data_thr[imod,fn]=data[imod+i*nmod]
                 else:
                     print(i, imod,header[imod+i*nmod])
    
-    sp.enable=0
-    d.setScan(sp)
+    #sp.enable=0
+    #d.setScan(sp)
     return data_thr
 
-    """
-    d.acquire()
-    print("received ",d.rx_framescaught,"frames")
-    for i in range(d.rx_framescaught+1):
-        dd, header = rx.receive_one_frame()
-        if dd is None:
-            break
-            if header["frameIndex"]<len(threshold):
-                data_thr[ic,header["frameIndex"]]=dd
-                nodata=0
-    """
+   
 
 
 def makeReceiver(d):
@@ -127,7 +146,10 @@ def makeReceiver(d):
     rx = [] 
     nmod=len(d.hostname)
     for imod in range(nmod):
-        zmqport=d.zmqport[imod]
+        if nmod>1:
+            zmqport=d.zmqport[imod]
+        else:
+            zmqport=d.zmqport
         rx.append(ZmqReceiver(f"tcp://{d.zmqip}:{zmqport}"))
     return rx
 
@@ -154,7 +176,7 @@ def testThrscan():
     n_counters=len(d.counters)
     d.exptime=0.1
     d.fwrite=0
-    smin=2800
+    smin=2000
     smax=600
     sstep=-10
     #smin=0
