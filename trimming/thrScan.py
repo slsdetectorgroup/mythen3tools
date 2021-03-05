@@ -15,14 +15,6 @@ def acquire(d,rx,longwait=False):
     #d.timing=timingMode.TRIGGER_EXPOSURE 
     d.startReceiver()
     d.startDetector()
-<<<<<<< HEAD
-    time.sleep(0.15)
-    print("here")
-=======
-    time.sleep(0.1)
-    if longwait:
-        time.sleep(0.75)
->>>>>>> e6b26b4a553b5d907424d46c3863df06d6c06dfc
     #print("before:",d.status)
     i=0
     data=[]
@@ -35,16 +27,6 @@ def acquire(d,rx,longwait=False):
         #print(threshold[iframe])
         nodata=1
         #while nodata==1:
-<<<<<<< HEAD
-        #if longwait:
-            #time.sleep(0.75)
-       # while np.min(d.rx_framescaught)==nf:
-            #d.sendSoftwareTrigger()
-        time.sleep(d.exptime)
-            #time.sleep(0.15)
-        print(nf,"frames",d.rx_framescaught)
-        nf=np.min(d.rx_framescaught)
-=======
         time.sleep(0.1)
         if longwait:
             time.sleep(0.75)
@@ -57,7 +39,6 @@ def acquire(d,rx,longwait=False):
         nf=d.rx_framescaught
         time.sleep(0.05)
 
->>>>>>> e6b26b4a553b5d907424d46c3863df06d6c06dfc
         #print(d.dacs.vth1,d.dacs.vth2,d.dacs.vth3,d.dacs.vtrim)
         for imod in range(len(d.hostname)):
             #print("imod",imod)
@@ -163,12 +144,6 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
     #d.setScan(sp)
     return data_thr
 
-<<<<<<< HEAD
-   
-=======
-
->>>>>>> e6b26b4a553b5d907424d46c3863df06d6c06dfc
-
 
 def makeReceiver(d):
     d.rx_zmqstream=1
@@ -206,15 +181,9 @@ def testThrscan():
     n_counters=len(d.counters)
     #d.exptime=0.1
     d.fwrite=0
-<<<<<<< HEAD
     smin=2000
     smax=600
     sstep=-10
-=======
-    smin=1200
-    smax=800
-    sstep=-2
->>>>>>> e6b26b4a553b5d907424d46c3863df06d6c06dfc
     #smin=0
     #smax=63
     #sstep=1
