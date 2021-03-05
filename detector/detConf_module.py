@@ -739,6 +739,19 @@ def setSuperHighGainMode(d):
     p.load(d)
     d.startPattern()
 
+
+def setHighestGainMode(d):
+    p=pat()
+    setChipStatusRegister(p,(1<<CSR_C10pre ) | (1<< CSR_C15sh) )
+    p.load(d)
+    d.startPattern()
+
+def setLowestGainMode(d):
+    p=pat()
+    setChipStatusRegister(p,(1<<CSR_C10pre ) | (1<< CSR_C15pre) |(1<<CSR_C15sh )|(1<<CSR_C30sh )| (1<< CSR_C50sh) |  (1<< CSR_C225ACsh) )#CSR_C225ACsh
+    p.load(d)
+    d.startPattern()
+
 def setPumpProbeMode(d):
     p=pat()
     setChipStatusRegister(p,CSR_default| (1<<CSR_pumprobe))
