@@ -192,7 +192,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
     outfname=None
     ff=1500
     dac=dacIndex.VTH1
-    for ic in counters:
+    for ic in [0]:#counters:
         d.findex=ind
         d.fname=fn+'_TB0_c'+str(ic)
         d.counters=[ic]
@@ -205,8 +205,6 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
             dac=dacIndex.VTH2
         elif ic==2:
             dac=dacIndex.VTH3
-        if verbose==1:
-            outfname=str(d.fpath)+'/thrdisp_'+fn+'_TB0_c'+str(ic)+'_'+str(ind)+'.dat'
         print("*** Threshold scan counter",ic)
         data_thr[ic]= scan(d,rx,dac, minthr, maxthr, thrstep)
         psc.plot_thrscan(np.concatenate(data_thr[ic],axis=1), minthr, maxthr, thrstep)
@@ -235,6 +233,8 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
             arg.append(nph1)
             arg.append(ff) 
             arg.append(nsigma) 
+            if verbose==1:
+                outfname=str(d.fpath)+'/thrdisp_'+fn+'_TB0_c'+str(ic)+'_d'+str(imod)+'_'+str(ind)+'.dat'
             arg.append(outfname)
             arg.append(chanmask[imod])
             args.append(arg)
@@ -246,18 +246,24 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
         for imod in range(nmod):
             vth[ic,imod],counts[ic,imod]=results[imod]
             print ("MODULE",imod,"COUNTER",ic,"THRESHOLD",vth[ic,imod]);
-
-
+                   
+        
         fig, ax = plt.subplots()
         ax.plot(np.concatenate(counts[ic]))
         fig.show()
+        
+    for ic in range(1,3):
+        for imod in range(nmod):
+            vth[ic,imod]= vth[0,imod]
+            counts[ic,imod]=counts[0,imod]
+        
 
     ###########################################################
     # Vtrim scan with trimbits=63 to find target vtrim
     ###########################################################
 
 
-    vtrimMin=200
+    vtrimMin=600
     vtrimMax=2000
     vtrimStep=5
 
@@ -351,7 +357,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
     trimbits= np.zeros((3*1280,nmod), dtype = np.int)
     data_trim = np.zeros((3,nmod,nrow,ncol), dtype =  to_dtype(d.dr))
     outfname=None
-    for ic in counters:
+    for ic in [0]: #counters:
 
         d.findex=ind
         d.fname=fn+'_TBscan_c'+str(ic)
@@ -386,6 +392,10 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
             print("MODULE",imod,"MEAN TRIMBITS COUNTER",ic,"IS",np.median(trimbits[ic::3,imod]),"RMS",np.sqrt(np.var(trimbits[ic::3,imod])))
         
 
+    for ic in range(1,3):
+        for imod in range(nmod):
+            trimbits[ic::3,imod]=trimbits[0::3,imod]
+        
 
     return vth,Vtrim,trimbits
         
@@ -422,7 +432,7 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
     outfname=None
 
     ff=1500
-    for ic in counters:
+    for ic in [0]:#counters:
         d.findex=ind
         d.fname=fn+'_trimmed_c'+str(ic)
         d.counters=[ic]
@@ -436,7 +446,7 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
         elif ic==2:
             dac=dacIndex.VTH3
         if verbose==1:
-            outfname=str(d.fpath)+'/thrdisp_'+fn+'_TB0_c'+str(ic)+'_'+str(ind)+'.dat'
+            outfname=str(d.fpath)+'/thrdisp_'+fn+'_trimmed_c'+str(ic)+'_'+str(ind)+'.dat'
         data_thr[ic]= scan(d,rx,dac, minthr, maxthr, thrstep)
         """       
         flex,noise,ampl,cs,cc=fsc.fit_all(threshold,data_thr[ic])
@@ -460,6 +470,8 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
             arg.append(nph1)
             arg.append(ff) 
             arg.append(nsigma) 
+            if verbose==1:
+                outfname=str(d.fpath)+'/thrdisp_'+fn+'_trimmed_c'+str(ic)+'_d'+str(imod)+'_'+str(ind)+'.dat'
             arg.append(outfname)
             arg.append(chanmask[imod])
             args.append(arg)
@@ -472,6 +484,11 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
             vth[ic,imod],counts[ic,imod]=results[imod]
             print ("MODULE",imod,"COUNTER",ic,"THRESHOLD",vth[ic,imod]);
 
+        
+    for ic in range(1,3):
+        for imod in range(nmod):
+            vth[ic,imod]= vth[0,imod]
+            counts[ic,imod]=counts[0,imod]
 
         #for imod in range(nmod):
          #   vth[ic,imod],counts[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph, ff, nsigma, outfname)
@@ -549,7 +566,7 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     fname=str(d.fpath)+'/'+ff+'_'+str(d.findex)
     d.trimbits=fname
 
-    for ic in range(0,3):
+    for ic in range(1):#range(0,3):
         data=tdata[ic]
         sstep=(maxthr-minthr)/(data.shape[1]-1)
         #print(data.shape,np.concatenate(data,axis=1).shape,np.arange(minthr,maxthr+sstep,sstep).shape )

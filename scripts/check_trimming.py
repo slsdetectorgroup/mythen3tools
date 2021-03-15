@@ -50,7 +50,7 @@ for tformat in tf:
 
 
 
-
+clim=0.5
 
 
 
@@ -103,7 +103,7 @@ for imod in range(nmod):
     for ic in range(3):
         vals[imod,ic]=data[imod,ic,inds[imod,ic]]
         proj[imod,ic]=np.median(data[imod,ic], axis=1)
-        params=fsc.init_params(vth[imod,ic], 2000)#3*np.median(vals[imod,ic]))
+        params=fsc.init_params(vth[imod,ic], 4000)#3*np.median(vals[imod,ic]))
         result=fsc.fit_scurve(thr, proj[imod,ic], params)
         vth_new[imod,ic]=result.params['flex'].value
         vals1[imod,ic]=data[imod,ic,np.digitize(result.params['flex'].value,thr)]
@@ -116,21 +116,20 @@ for imod in range(nmod):
     #print(result.fit_report())
  
 
-    """
-        pp=vals[imod]
-        vv=np.median(vals[imod])
-        v1=np.array(np.where(pp<0.5*vv))+1280*imod
-        v2=np.array(np.where(pp>2*vv))+1280*imod
-        bads=np.append(bads,v1)
-        bads=np.append(bads,v2)
-    """
+    pp=vals[imod,0]
+    vv=np.median(pp)
+    v1=np.array(np.where(pp<(1.-clim)*vv))+1280*imod
+    v2=np.array(np.where(pp>(1.+clim)*vv))+1280*imod
+    bads=np.append(bads,v1)
+    bads=np.append(bads,v2)
+
     tfname1=tformat+'_new.sn'+str(sn[imod]).zfill(4)
     dacs[imod,np.int(ind)]=vth_new[imod,0]
     ind=dacNames['vth2']
     dacs[imod,np.int(ind)]=vth_new[imod,1]
     ind=dacNames['vth3']
     dacs[imod,np.int(ind)]=vth_new[imod,2]
-    my3.write_my3_trimbits(tfname1,np.int32(dacs),np.int32(tb))
+    #my3.write_my3_trimbits(tfname1,np.int32(dacs),np.int32(tb))
 
     print(vth[imod],vth_new[imod])  
 
@@ -140,3 +139,4 @@ for ic in range(3):
     ax.plot(np.concatenate(vals1[:,ic]),label="new")
     ax.legend(loc='best') 
     fig.show()
+print(bads.shape)
