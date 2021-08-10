@@ -7,7 +7,6 @@ import math
 from lmfit import Model,Parameters,Minimizer, report_fit
 from lmfit.models import LinearModel
 from scipy.signal import argrelextrema
-
 #############################################################
 ####### Need to work on fitting range and start parameters
 ##############################################################
@@ -322,10 +321,10 @@ def plot_fit(thresholds,data,result,ax=None, fig=None):
     if ax is None:
         fig,ax=plt.subplots()
     #print(thresholds.shape,data.shape)
-    result.plot_fit(ax)
-    ax.plot(thresholds, data, 'bo')
+    #result.plot_fit(ax)
     #plt.plot(thresholds[0:result.init_fit.shape[0]], result.init_fit, 'k--', label='initial fit')
-    #ax.plot(thresholds[0:result.init_fit.shape[0]], result.best_fit, 'r-', label='best fit')
+    ax.plot(thresholds[0:result.init_fit.shape[0]], result.best_fit, '-', label='best fit')
+    ax.plot(thresholds, data, 'o')
     #ax.legend(loc='best')  
     #print(result.fit_report())
     #plt.show()

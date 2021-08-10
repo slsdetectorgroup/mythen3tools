@@ -6,18 +6,20 @@ from detConf_module import *
 from trimming import *
 
 
-energy=9400
-exptime=0.5
+energy=5400
+#5400
+exptime=0.1
 findex=0
 
-nph=[7500,7000,5000,4000,3800,3500,3200,2800,2600,2400,2300,2200,2100,2000]
-chanmask=[[],[],[],[],[],[],[],[],[],[],[],[],[],[]]
+nph=[4000, 4000]
+#4000
+chanmask=[[],[]]
 
 d= Mythen3()
 rx=makeReceiver(d)
 d.exptime=exptime
 d.findex=findex
-fpath='/sls/X04SA/Data1/ES2/now/Mythen3_20210305/'+str(energy)+'eV/'
+fpath='/mnt/mythen_data/Mythen3_module/Mythen3_Frascati/'
 d.fwrite=1
 
 
@@ -46,7 +48,7 @@ for igain in range(1):
             d.settings=detectorSettings.STANDARD
             sett="standard"
             if igain==0:
-                minthr=1500
+                minthr=1300
             """
             if igain==1:
                 minthr=1500
@@ -55,11 +57,9 @@ for igain in range(1):
             """
         if isett==1:
             d.settings=detectorSettings.HIGHGAIN
-            d.dacs.vrpreamp=1350
-            d.dacs.vrshaper=1100
             sett="highgain"
             if igain==0:
-                minthr=1800
+                minthr=1500
             """
             if igain==1:
                 minthr=2000
@@ -92,7 +92,7 @@ for igain in range(1):
         
         d.counters=[0,1,2]
         #minthr=1500
-        maxthr=900
+        maxthr=800
         thrstep=-2
         nsigma=5
 

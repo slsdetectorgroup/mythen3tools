@@ -5,40 +5,40 @@ from patterntools.zmqreceiver import ZmqReceiver
 from detConf_module import *
 from trimming import *
 
-ff='ChromiumHighgain'
+ff='CopperHighgain'
 
 
-ff='standard_9000eV_200V_500ms'
 
 d = Mythen3()
 
 #d.loadConfig('/afs/psi.ch/user/b/bergamaschi/project/Anna/slsDetectorPackageDeveloper/examples/my30module_standard.config')
 
-d.fpath='/sls/X04SA/Data1/ES2/now/Mythen3_20200122/'
+d.fpath='/mnt/mythen_data/Mythen3_module/Mythen3_Frascati/'
 d.fname=ff
 #print(d.hostname)
 
 d.stopReceiver()
 d.rx_zmqstream=1
 d.rx_zmqfreq=1
-d.exptime=0.5
+d.exptime=0.1
 
 d.fwrite=1
 
 
 
 rx=makeReceiver(d)
-d.settings=detectorSettings.STANDARD
+d.settings=detectorSettings.HIGHGAIN
 d.counters=[0,1,2]
 minthr=1500
 maxthr=800
 thrstep=-2
-nph=2500
+nph=[10000]
 nsigma=5
 
+chanmask=[[]]
 
 
 
-vth,vtrim,trimbits=trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, 1)
+vth,vtrim,trimbits=trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask,1)
 
 

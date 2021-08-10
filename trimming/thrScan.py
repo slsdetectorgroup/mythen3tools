@@ -119,7 +119,7 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
         if dac==dacIndex.VTRIM:
             d.dacs.vtrim=ith
             print("vtrim",d.dacs.vtrim);
-        
+        print(d.settings,d.exptime,d.timing)
         time.sleep(0.05)
         d.startDetector()
         #d.acquire()  

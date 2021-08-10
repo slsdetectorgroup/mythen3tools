@@ -133,13 +133,13 @@ def _read_my3_frame(f, n_counters, dr):
 
     return header, data
 
-
 def read_my3_trimbits(fname):  
     try:
         f=open(fname, 'rb') 
     except:
         print ("Could not open file:", fname)
         return 0,0
+
     try:
         dacs = np.fromfile(f, dtype = np.uint32, count = 16)
     except:
@@ -153,11 +153,59 @@ def read_my3_trimbits(fname):
     f.close()
     return dacs,trimbits
 
+
+def read_my3_trimbits_new(fname):  
+    try:
+        f=open(fname, 'rb') 
+    except:
+        print ("Could not open file:", fname)
+        return 0,0,0
+
+    try:
+        gain = np.fromfile(f, dtype = np.uint32, count = 1)
+    except:
+        print ("Could not read dacs")
+        return 0,0,0
+    try:
+        dacs = np.fromfile(f, dtype = np.uint32, count = 16)
+    except:
+        print ("Could not read dacs")
+        return 0,0,0
+    try:
+        trimbits = np.fromfile(f, dtype = np.uint32, count = 1280*3)
+    except:
+        print ("Could not read trimbits")
+        return 0,0,0
+    f.close()
+    return gain,dacs,trimbits
+
+
+
 def write_my3_trimbits(fname,dacs,trimbits):  
     try:
         f=open(fname, 'wb') 
     except:
         print ("Could not open file:", fname)
+    try:
+        dacs.tofile(f)
+    except:
+        print ("Could not write dacs")
+    try:
+        trimbits.tofile(f)
+    except:
+        print ("Could not write trimbits")
+    f.close()
+
+
+def write_my3_trimbits_new(fname,gain,dacs,trimbits):  
+    try:
+        f=open(fname, 'wb') 
+    except:
+        print ("Could not open file:", fname)
+    try:
+        gain.tofile(f)
+    except:
+        print ("Could not write gain")
     try:
         dacs.tofile(f)
     except:

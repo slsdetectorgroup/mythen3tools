@@ -13,6 +13,7 @@ import time
 from patterntools import pat
 import numpy as np
 from patterntools.zmqreceiver import to_dtype,ZmqReceiver
+import slsdet
 
 
 
@@ -771,3 +772,28 @@ def changeClkdDiv(d,val,off=0):
     d.clkdiv[2]=val
     d.writeRegister(0x110,off)
 
+
+def gain_bits_to_string(val1):
+    val= val1 ^((1 << CSR_C10pre) | (1 << CSR_C15pre))
+    #print(hex(val),hex(val1))
+    gains = [g for g in slsdet.M3_GainCaps.__members__ if int(getattr(slsdet.M3_GainCaps, g)) & val]
+    if len(gains)==0:
+        return "M3_C0"
+    return '_'.join([g for g in gains])
+
+
+#print(bits_to_string(d.getChipStatusRegister()[0]))
+def index_to_gain(ind):
+    r=2
+    gains=slsdet.M3_GainCaps.__members__
+    gg=[0]
+    for n in range(len(gains)):
+        for i in gg:
+            gsh1=[]
+            for j in gains:
+                gsh1.append(i | int(getattr(slsdet.M3_GainCaps, j)))
+                gg=gg+gsh1
+            gg=list( dict.fromkeys(gg) ) 
+    return gg[ind]
+
+#print("DETCONFMODULE LOADED")
