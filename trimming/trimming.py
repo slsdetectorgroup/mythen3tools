@@ -41,18 +41,24 @@ def find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma=
     a=nSigma
     if a==0:
         a=3
+
+    a=3
+
     if len(vv)>0:
-        meanf=np.median(vv)
-        sigmaf=np.sqrt(np.var(vv))
-        if sigmaf>50:
-            sigmaf=50
-        vv=flex[(flex > meanf-a*sigmaf) & (flex < meanf+a*sigmaf)]
+        #meanf=np.median(vv)
+        #sigmaf=np.sqrt(np.var(vv))
+        #print("Max ",max(vv),"Min ",min(vv))
+        #if sigmaf>50:
+        #    sigmaf=50
+        #vv=flex[(flex > meanf-a*sigmaf) & (flex < meanf+a*sigmaf)]
         if len(vv):
             sigmaf=np.sqrt(np.var(vv))
             meanf=np.median(vv)
+            print("Max ",max(vv),"Min ",min(vv))
         thr0=meanf+nSigma*sigmaf
         print("MEAN",meanf,"RMS",sigmaf)
-            
+        thr0=min(thr0,max(vv))
+
     if thr0>2500:
         thr0=2500
     if len(counts[counts==0])>0:
@@ -89,43 +95,61 @@ def find_target_vtrim(data, smin, smax, counts,chanmask, nSigma=5):
         val=data[:,ich]
         for i, itrim in enumerate(inds,start=-0):
         #for itrim in inds:  
+            flex[ich]=vtrim[itrim]
             if val[itrim]>counts[ich]:
                 #if itrim==0 or itrim==63:
-                flex[ich]=vtrim[itrim]
+                #flex[ich]=vtrim[itrim]
+                #print(ich,vtrim[itrim],val[itrim],counts[ich])
                 #else:
                 #    #(counts-val[itrim])=(val[itrim-val[itrim-1])/(vtrim[itrim]-vtrim[itrim-1])*(vt-vtrim[itrim])
                 #    flex[ich]=(vtrim[itrim]-vtrim[inds[i-1]])/(val[itrim]-val[inds[i-1]])*(counts[ich]-val[itrim])+vtrim[itrim]
                 #    print(ich,"**",counts[ich],flex[ich],vtrim[itrim],vtrim[itrim-1],val[itrim],val[itrim-1])
-                #print(ich,val[itrim],counts[ich],vtrim[itrim])
+                #if counts[ich]>0:
+                #    print(ich,val[itrim],counts[ich],vtrim[itrim])
                 break
+
+        if flex[ich]==vtrim[0]:
+            print(ich,flex[ich],counts[ich],val)
+        if flex[ich]==vtrim[-1]:
+            print(ich,flex[ich],counts[ich],val)
     #print("flex\n",flex)
     #print("counts\n",counts)
-    vtrim0=600
+    #vtrim0=600
+    vtrim0=800
 
     for ich in chanmask:
         counts[ich]=0
 
-    vv=np.where(counts>0)
+    vv=flex[np.where(counts>0)]
     a=nSigma
     if a==0:
         a=3
+
+    #a=2
+
     if len(vv)>0:
         meanf=np.median(vv)
         sigmaf=np.sqrt(np.var(vv))
-        vv=flex[(flex > meanf-a*sigmaf) & (flex < meanf+3*sigmaf)]
-        if len(vv)>0:
-            meanf=np.median(vv)
-            sigmaf=np.sqrt(np.var(vv))
+        print("Median vtrim ",meanf," Sigma vtrim ",sigmaf)
+        print(vv)
+        #vv=flex[(flex > meanf-a*sigmaf) and (flex < meanf+a*sigmaf)]
+        #if len(vv)>0:
+        #    meanf=np.median(vv)
+        #    sigmaf=np.sqrt(np.var(vv))
         vtrim0=meanf-nSigma*sigmaf
-        print(np.median(counts),"MEAN",meanf,"RMS",sigmaf)
+        #print(np.median(counts),np.median(vv),"MEAN",meanf,"RMS",sigmaf)
     else:
         print("all counts are 0!")
 
+    vtrim0=max(vtrim0,min(vv))
+    
     if len(counts[counts==0])>0:
         counts[counts==0]=np.median(counts[counts>0])
 
-    if vtrim0<600:
-        vtrim0=600     
+    #if vtrim0<600:
+    #    vtrim0=600   
+    #if vtrim0<600:
+    #    vtrim0=600     
     return vtrim0
 
 def find_trimbits(data, counts, smin=0, smax=63):
@@ -143,16 +167,24 @@ def find_trimbits(data, counts, smin=0, smax=63):
         tb[ich]=0
         val=data[:,ich]
         for itrim in inds:
-            if val[itrim]>counts[ich]:
+            tb[ich]=trims[itrim]
+            if val[itrim]>counts[ich]-np.sqrt(counts[ich]):
                 #print(ich,counts[ich],val[itrim],itrim)
-                tb[ich]=trims[itrim]
                 #if itrim>0:
                 #    tb[ich]=int((trims[itrim]-trims[itrim-1])/(val[itrim]-val[itrim-1])*(counts[ich]-val[itrim])+trims[itrim])
-                break
+                if itrim<trims.shape[0]-1:
+                    #print(ich,counts[ich],val[itrim],val[itrim+1])
+                    if val[itrim+1]>counts[ich]-np.sqrt(counts[ich]):
+                        break
+                else:
+                    break
+
         if tb[ich]<0:
             tb[ich]=0
         if tb[ich]>63:
             tb[ich]=63
+        if tb[ich]==63:
+            print(ich,counts[ich],data[:,ich])
 
     return tb
 
@@ -211,10 +243,10 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
         
         args=[]
         for imod in range(nmod):
-            if len(nph)==1:
-                nph1=nph
-            else:
-                nph1=nph[imod]
+            #if len(nph)==1:
+            #    nph1=nph
+            #else:
+            #    nph1=nph[imod]
             if ic>0:
                 ff=vth[0,imod]
                 #v=np.median(counts[0,imod])
@@ -230,7 +262,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
             arg.append(data_thr[ic,imod])
             arg.append(minthr)
             arg.append(maxthr)
-            arg.append(nph1)
+            arg.append(nph[imod])
             arg.append(ff) 
             arg.append(nsigma) 
             if verbose==1:
@@ -263,9 +295,10 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
     ###########################################################
 
 
-    vtrimMin=600
-    vtrimMax=2000
-    vtrimStep=5
+    vtrimMin=0
+    #vtrimMin=600
+    vtrimMax=2800
+    vtrimStep=20
 
     dac=dacIndex.VTRIM
     vtrims=np.arange(vtrimMin, vtrimMax+vtrimStep,vtrimStep)
@@ -316,7 +349,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
         
         
         nodata=1
-
+        Vtrim= np.zeros(nmod, dtype = np.int)
         if verbose==1:
             outfname=str(d.fpath)+'/vtrimdisp_'+fn+'_TB63_c'+str(ic)+'_'+str(ind)+'.dat'
 
@@ -330,14 +363,18 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
             vtrim[ic,imod]=find_target_vtrim(data_vtrim[ic,imod], vtrimMin, vtrimMax, counts[ic,imod],chanmask[imod],3)
             print("MODULE",imod,"VTRIM",ic,"IS",vtrim[ic,imod])
 
-    Vtrim= np.zeros(nmod, dtype = np.int)
     for imod in range(nmod):
         aa=np.where(vtrim[:,imod]>0)
         Vtrim[imod]=vtrim[0,imod] #np.mean(vtrim[aa,imod])
         print("MODULE",imod,"AVERAGE VTRIM","IS",Vtrim[imod])
 
+    """
         
+    for imod in range(nmod):
+        Vtrim[imod]=600
 
+    
+    """
 
     ###########################################################
     # Trimbit scan  to find target trimbits
@@ -345,6 +382,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
 
     for imod in range(nmod):
         d.dacs.vtrim[imod]=int(Vtrim[imod])
+
     tbMin=0
     tbMax=63
     tbStep=1
@@ -383,6 +421,8 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
         if verbose==1:
             outfname=str(d.fpath)+'/trimdisp_'+fn+'_TB63_c'+str(ic)+'_'+str(ind)+'.dat'
         print("*** Trimbit scan counter",ic)
+        print("vtrim is ",d.dacs.vtrim)
+
         data_trim[ic]= scan(d,rx,dac, tbMin, tbMax, tbStep)
 
         #psc.plot_thrscan(np.concatenate(data_trim[ic],axis=1), tbMin, tbMax, tbStep)
@@ -396,7 +436,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
         for imod in range(nmod):
             trimbits[ic::3,imod]=trimbits[0::3,imod]
         
-
+    print(Vtrim)
     return vth,Vtrim,trimbits
         
 
@@ -455,19 +495,21 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
             fsc.save_scurve_fit_file(outfname,flex,noise,ampl,cs,counts)
     print("THRESHOLD",ic,"MEAN",np.mean(flex[flex>0]),"RMS",np.sqrt(np.var(flex[flex>0]))," MEAN COUNTS",np.mean(cc))
         """
+
+        """
         nsigma=0  
         pool = mp.Pool(processes=nmod)
         args=[]
         for imod in range(nmod):
-            if len(nph)==1:
-                nph1=nph
-            else:
-                nph1=nph[imod]
+            #if len(nph)==1:
+            #    nph1=nph
+            #else:
+            #    nph1=nph[imod]
             arg=[]
             arg.append(data_thr[ic,imod])
             arg.append(minthr)
             arg.append(maxthr)
-            arg.append(nph1)
+            arg.append(nph[imod])
             arg.append(ff) 
             arg.append(nsigma) 
             if verbose==1:
@@ -492,7 +534,8 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
 
         #for imod in range(nmod):
          #   vth[ic,imod],counts[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph, ff, nsigma, outfname)
-    
+    """
+
     return data_thr,vth
         
 
@@ -501,8 +544,11 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
 
 def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     
+    sn=d.getModuleId()
+    #sn=d.getSerialNumber()
+    print(sn)
 
-    sn=d.getSerialNumber()
+    
 
     nmod=len(d.hostname)
 
@@ -520,16 +566,19 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
         d.dacs.vtrim[imod]=vtrim[imod]
         print("MODULE", imod, "THRESHOLDS ARE",vth[:,imod])
         print("VTRIM IS",vtrim[imod])
-    #dacvalues [vcassh 1200, vth2 2800, vrshaper 1280, vrshaper_n 2800, vipre_out 1220, vth3 2800, vth1 2800, vicin 1708, vcas 1800, vrpreamp 1100, vcal_n 1100, vipre 2624, vishaper 1708, vcal_p 1712, vtrim 2800, vdcsh 800, vthreshold 2800]
 
     print('Trimming required:',end - start,'seconds')
     dacs= d.dacs.to_array()
+
+    gain=d.getGainCaps()[0]
 
     #print("DACS BEFORE:",dacs)
     #print("TBs:",trimbits)
     for imod in range(nmod):
         fname=str(d.fpath)+'/'+ff+'_'+str(d.findex)+'.sn'+str(sn[imod]).zfill(4)
-        my3.write_my3_trimbits(fname,np.int32(dacs[:,imod]),np.int32(trimbits[:,imod]))
+        my3.write_my3_trimbits_new(fname,np.int32(gain),np.int32(dacs[:,imod]),np.int32(trimbits[:,imod]))
+        #my3.write_my3_trimbits(fname,np.int32(dacs[:,imod]),np.int32(trimbits[:,imod]))
+        
         print('Wrote to trimbit file',fname)
 
     fname=str(d.fpath)+'/'+ff+'_'+str(d.findex)
@@ -543,6 +592,7 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
 
 
     d.counters=[0,1,2]
+    """
     print("*** AFTER CALIBRATION ***")
     for imod in range(nmod):
         d.dacs.vth1[imod]=vth[0,imod]
@@ -555,14 +605,14 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
         dacs= d.dacs.to_array()
 
         #a=d.getSerialNumber()
-
+        gain=d.getGainCaps()
 
         #for imod in range(nmod):
-        fname=str(d.fpath)+'/'+ff+'_'+str(d.findex)+'.sn'+str(sn[imod]).zfill(4)
-        my3.write_my3_trimbits(fname,np.int32(dacs[:,imod]),np.int32(trimbits[:,imod]))
+        fname=str(d.fpath)+'/'+ff+'_recal_'+str(d.findex)+'.sn'+str(sn[imod]).zfill(4)
+        my3.write_my3_trimbits_new(fname,np.int32(gain),np.int32(dacs[:,imod]),np.int32(trimbits[:,imod]))
         print('Wrote to trimbit file',fname)
-
-
+        
+    """
     fname=str(d.fpath)+'/'+ff+'_'+str(d.findex)
     d.trimbits=fname
 

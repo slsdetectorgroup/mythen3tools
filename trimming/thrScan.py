@@ -64,7 +64,49 @@ def acquire(d,rx,longwait=False):
 #    d.stopReceiver()
 
 """
+ 
+def acquireFrame(d,rx, ax1=None):
     
+
+    nmod=len(d.hostname)
+
+    d.rx_zmqstream=1
+    d.rx_zmqfreq=1
+    d.startReceiver()
+    d.startDetector()
+    #d.acquire()  
+    #d.status
+    data=np.zeros((nmod,len(d.counters)*1280), dtype =  to_dtype(d.dr))
+    header=[]
+    nf0=0
+    time.sleep(d.exptime)
+    while d.status != runStatus.IDLE:
+        time.sleep(0.01)
+
+    nf=np.min(d.rx_framescaught)
+    if nf>nf0:
+    #for iframe in range(nf):
+        nf0=nf
+        for imod in range(len(d.hostname)):
+            dd, hh = rx[imod].receive_one_frame()
+            if dd is not None:
+                data[imod]=dd
+            if imod==0:
+                print(hh["frameIndex"])
+   
+
+                
+    d.stopReceiver()
+    #receive dummy packet
+    for imod in range(len(d.hostname)):
+        dd, hh = rx[imod].receive_one_frame()
+    #sp.enable=0
+    #d.setScan(sp)
+    if ax1 is not None:
+        aa=np.concatenate(data,axis=0)
+        ax1.plot(aa)
+    return data
+   
 def scan(d,rx,dac, minthr, maxthr, thrstep):
     sp=scanParameters()
 
@@ -106,28 +148,28 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
 
         if dac==dacIndex.TRIMBIT_SCAN:
             d.trimval=ith
-            print("tb",ith);
+            #print("tb",ith);
         if dac==dacIndex.VTH1:
             d.dacs.vth1=ith
-            print("vth1",d.dacs.vth1);
+            #print("vth1",d.dacs.vth1);
         if dac==dacIndex.VTH2:
             d.dacs.vth2=ith
-            print("vth2",d.dacs.vth2);
+            #print("vth2",d.dacs.vth2);
         if dac==dacIndex.VTH3:
             d.dacs.vth3=ith
-            print("vth3",d.dacs.vth3);
+            #print("vth3",d.dacs.vth3);
         if dac==dacIndex.VTRIM:
             d.dacs.vtrim=ith
-            print("vtrim",d.dacs.vtrim);
-        print(d.settings,d.exptime,d.timing)
+            #print("vtrim",d.dacs.vtrim);
+        #print(d.settings,d.exptime,d.timing)
         time.sleep(0.05)
         d.startDetector()
         #d.acquire()  
-        #d.status
+        #print(d.status)
         time.sleep(d.exptime)
         while d.status != runStatus.IDLE:
             time.sleep(0.01)
-        #    d.status
+            #print(d.status)
 
         nf=np.min(d.rx_framescaught)
         if nf>nf0:
@@ -137,8 +179,8 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
                 dd, hh = rx[imod].receive_one_frame()
                 data.append(dd)
                 header.append(hh)
-                if imod==0:
-                    print(ith, hh["frameIndex"])
+                #if imod==0:
+                    #print(ith, hh["frameIndex"])
    
 
     for i in range(int(len(header)/nmod)):

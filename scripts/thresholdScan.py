@@ -9,25 +9,46 @@ import matplotlib.pyplot as plt
 from thrScan import *
 
 
-d = Mythen3()
-rx=makeReceiver(d)
-d.powerchip=1
-d.fname="arc2"
-d.fpath="/mnt/mythen_data/Mythen3_module/moduleTest_20210805/"
+#import matplotlib
+#matplotlib.use('TkAgg')
 
-d.highvoltage=200
-d.counters=[0]
-smin=1000
-smax=800
-sstep=-5
+#daclist [vcassh, vth2, vrshaper, vrshaper_n, vipre_out, vth3, vth1, vicin, vcas, vrpreamp, vcal_n, vipre, vishaper, vcal_p, vtrim, vdcsh, vthreshold]
+
+#vipre
+#vipre_out (?)
+#vicin
+
+
+d = Mythen3()
+print(d.hostname)
+rx=makeReceiver(d)
+print("receiver done")
+#d.powerchip=1
+#d.fname="test"
+#d.fpath="/mnt/mythen_data/Mythen3_module/my30sTests_20211216/"
+
+#d.settings=detectorSettings.HIGHGAIN
+
+#import superhighgain
+
+#d.highvoltage=200
+
+#d.counters=[0]
+smin=1800
+smax=700
+sstep=-10
 dac=dacIndex.VTH1
-d.exptime=0.1
+#d.dacs.vth2=2400
+#d.dacs.vth3=200
+
+
+#d.exptime=0.1
+
+
+
 data_thr=scan(d,rx,dac, smin, smax, sstep)
-psc.plot_thrscan(np.concatenate(data_thr,axis=1),smin,smax,sstep)
-d.highvoltage=0
-#tt=110
-#vv=np.where(data_thr[0,tt,:]<np.mean(data_thr[0,tt,:])/2.)
-#vv1=np.where(data_thr[0,tt,:]>np.mean(data_thr[0,tt,:])*3)
-#print(d.fname,"BAD CHANS:",len(vv[0])+len(vv1[0]))
-#print(vv,vv1)
-d.powerchip=0
+aa=np.concatenate(data_thr,axis=1)
+
+psc.plot_thrscan(aa,smin,smax,sstep)
+#plt.show()
+

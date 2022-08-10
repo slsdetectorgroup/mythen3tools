@@ -14,9 +14,9 @@ def bits_to_string(val):
 
 d = slsdet.Mythen3()
 #setSuperHighGainMode(d)
+setHighestGainMode(d)
 
-
-print('Before: ', bits_to_string(d.getChipStatusRegister()[0]))
-d.setGainCaps(0)
-print('After: ', bits_to_string(d.getChipStatusRegister()[0]))
+#print('Before: ', bits_to_string(d.getChipStatusRegister()[0]))
+#d.setGainCaps(0)
+#print('After: ', bits_to_string(d.getChipStatusRegister()[0]))
 

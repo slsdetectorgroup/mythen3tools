@@ -6,20 +6,23 @@ from detConf_module import *
 from trimming import *
 
 
-energy=5400
+energy=17500
 #5400
 exptime=0.1
 findex=0
-
-nph=[4000, 4000]
-#4000
-chanmask=[[],[]]
+nph=[2000,2000,2000]
+#nph=[4000, 4000]
+#chanmask=[[],[]]
+chanmask=[[],[],[]]
+chanmask[1]=range(128*9, 128*10)
+chanmask[2]=range(128*2, 128*3)
 
 d= Mythen3()
 rx=makeReceiver(d)
 d.exptime=exptime
 d.findex=findex
-fpath='/mnt/mythen_data/Mythen3_module/Mythen3_Frascati/'
+d.dacs.vicin=1500
+fpath='/mnt/mythen_data/Mythen3_module/moduleMS20220610/'
 d.fwrite=1
 
 
@@ -28,78 +31,75 @@ d.rx_zmqstream=1
 d.rx_zmqfreq=1
 
 
-for igain in range(1):
+for igain in range(1,3):
     if igain==0:
+        minthr=2000
         setDefaultMode(d)
         gain="defaultGain"
+        d.settings=detectorSettings.STANDARD
+        sett="standard"
+
     if igain==1:
+        minthr=2800
         setHighestGainMode(d)
         gain="highestGain"
-    if igain==3:
-        setLowestGainMode(d)
-        gain="lowestGain"
+        d.settings=detectorSettings.HIGHGAIN
+        sett="highgain"
+   
     if igain==2:
+        minthr=1800
+        setLowGainMode(d)
+        gain="lowGain"
+        d.settings=detectorSettings.STANDARD
+        sett="standard"
+    """
+    if igain==3:
+        #d.setGainCaps(0)
         setSuperHighGainMode(d)
         gain="superHighGain"
-        
+    
+    if igain==4:
+        setLowestGainMode(d)
+        gain="lowestGain"
+    """
+    
+    """
+    M3_C10pre
 
-    for isett in range(2):
-        if isett==0:
-            d.settings=detectorSettings.STANDARD
-            sett="standard"
-            if igain==0:
-                minthr=1300
-            """
-            if igain==1:
-                minthr=1500
-            if igain==2:
-                minthr=2400
-            """
-        if isett==1:
-            d.settings=detectorSettings.HIGHGAIN
-            sett="highgain"
-            if igain==0:
-                minthr=1500
-            """
-            if igain==1:
-                minthr=2000
-            if igain==2:
-                minthr=2400
-            """
-        if isett==2:
-            d.settings=detectorSettings.FAST
-            sett="fast"
-            if igain==0:
-                minthr=1400
-            """
-            if igain==1:
-                minthr=1500
-            if igain==2:
-                minthr=2400
-            """
+    M3_C15sh
+
+    M3_C30sh
+    
+    M3_C50sh
+    
+    M3_C225ACsh
+
+    M3_C15pre    
+    """
+   
             
 
-        d.fpath=fpath+sett+'/'+gain+'/'
-        ff=sett+'_'+gain+'_'+str(energy)+'eV_200V_'+str(int(1000*exptime))+'ms'
+    d.fpath=fpath+sett+'/'+gain+'/'
+    ff=sett+'_'+gain+'_'+str(energy)+'eV_200V_'+str(int(1000*exptime))+'ms'
 
-        print(d.fpath, ff)
-        d.fname=ff
-        #print(d.hostname)
+    print(d.fpath, ff)
+    d.fname=ff
+    #print(d.hostname)
 
-        d.fwrite=1
+    d.fwrite=1
 
 
         
-        d.counters=[0,1,2]
-        #minthr=1500
-        maxthr=800
-        thrstep=-2
-        nsigma=5
+    d.counters=[0,1,2]
+    maxthr=900
+    thrstep=-5
+    nsigma=3
 
-        ind=d.findex
+    ind=d.findex
 
-        if igain==0:
-            vth,vtrim,trimbits=trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, 1)
+        #if igain==0:
+    vth,vtrim,trimbits=trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, 1)
+    """
         else:
             d.trimval=0
             for ic in range(1):
@@ -117,5 +117,11 @@ for igain in range(1):
                     dac=dacIndex.VTH3
                 print("*** Threshold scan counter",ic)
                 data_thr= scan(d,rx,dac, minthr, maxthr, thrstep)
+    """
 
 setDefaultMode(d)
+#d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C15pre))
+d.settings=detectorSettings.STANDARD
+
+
+d.counters=[0]

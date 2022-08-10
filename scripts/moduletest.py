@@ -23,9 +23,10 @@ d.counters=[0,1,2]
 n_counters=len(d.counters)
 
 #using the module with long cables
-clkdiv=10
-changeClkdDiv(d,clkdiv)
+#clkdiv=80
+#changeClkdDiv(d,clkdiv)
 
+"""
 if clkdiv==10:
     d.writeRegister(0x110,0x80)
 if clkdiv==15:
@@ -34,31 +35,37 @@ elif clkdiv==20:
     d.writeRegister(0x110,0x70)
 else:
     d.writeRegister(0x110,0x60)
+"""
 
-
+"""
 print('TEST SERIAL IN')
 val=0xbbbbbb
 serInErrorMask1=testSerialIn(d,val)
 val=0xaaaaaa
 serInErrorMask2=testSerialIn(d,val)
+val=0xcccccc
+serInErrorMask2=testSerialIn(d,val)
+#testSerialIn(d,0xffffff)
+val=0xbbbbbb
+serInErrorMask1=testSerialIn(d,val)
 
 if serInErrorMask2|serInErrorMask1==0:
     print("serial IN test succeeded")
 else:
     print("serial IN test failed")
+"""
+for shift in [0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xa0]:
+    d.writeRegister(0x110,shift)
+    d.fwrite=0
+    print('DIGITAL PULSING')
 
-
-d.fwrite=0
-print('DIGITAL PULSING')
-
-npuls=[0xaa,0xbb,0xcc]
-#for i in range (0,65536):
- #   print("pulsing",hex(i),d.clkdiv[0])
-
+    npuls=[0xaa,0xbb,0xcc]
+    #for i in range (0,65536):
+    #   print("pulsing",hex(i),d.clkdiv[0])
+    
         #d.writeRegister(0x110,off)
-digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,npuls,0)
-print("chip mask",hex(chipErrorMask),"total errors",digPulseErrorMask)
-
+    digPulseErrorMask,chipErrorMask=testDigitalPulsing(d,rx,npuls,1)
+    print(shift, "chip mask",hex(chipErrorMask),"total errors",digPulseErrorMask)
 
 
 """

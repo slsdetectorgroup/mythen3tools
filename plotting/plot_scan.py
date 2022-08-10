@@ -37,7 +37,6 @@ def plot_thrscan(adata, smin, smax, sstep):
     z_hist = fig.add_subplot(grid[-2:, 0:1], xmargin=0.2, ymargin=0.2)#, yticklabels=[], sharex=main_ax)
     imx=None
     imy=None
-
     x_hist.set_xlabel("Channel number")
     y_hist.set_ylabel("Threshold")
 
@@ -60,8 +59,8 @@ def plot_thrscan(adata, smin, smax, sstep):
     pdata=np.where(data< mmm, data, mmm)
     im_main = main_ax.contourf(chans, threshold, pdata, 100, cmap=plt.cm.jet)
 
-    #main_ax.xaxis.set_ticklabels([])
-    #main_ax.yaxis.set_ticklabels([])
+    main_ax.xaxis.set_ticklabels([])
+    main_ax.yaxis.set_ticklabels([])
 
     main_ax.set_yticklabels([])
     main_ax.set_xticklabels([])

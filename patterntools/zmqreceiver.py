@@ -8,7 +8,7 @@ def to_dtype(n_bits):
     if n_bits == 8:
         return np.uint8
     elif n_bits == 16:
-        return np.uint18
+        return np.uint16
     elif n_bits == 32:
         return np.uint32
 

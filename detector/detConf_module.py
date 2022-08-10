@@ -598,8 +598,8 @@ def testSerialIn(d,val):
     v0=d.clkdiv[0]
     v2=d.clkdiv[2]
 
-    d.clkdiv[0]=40
-    d.clkdiv[2]=40
+    #d.clkdiv[0]=40
+    #d.clkdiv[2]=40
     pp.load(d)
     d.startPattern()
 
@@ -625,7 +625,7 @@ def testSerialIn(d,val):
     errorMask=0
     for i in range(NCHIPS*NSEROUT):
         if serout[i]!=val:
-            print("serout",i,"read", hexFormat(serout[i],8),"instead of",hexFormat(val,8))
+            print("serout",i,"read", hex(serout[i]),"instead of",hex(val))
             errorMask|=(1<<i)
 
     d.clkdiv[0]=v0
@@ -728,49 +728,96 @@ CSR_C15pre = 14
 CSR_default = (1<<CSR_C10pre ) | (1<< CSR_C30sh)
 """
 
+
 def setDefaultMode(d):
-    p=pat()
-    setChipStatusRegister(p,CSR_default)
-    p.load(d)
-    d.startPattern()
+    #p=pat()
+    #setChipStatusRegister(p,CSR_default)
+    #p.load(d)
+    #d.startPattern()
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C10pre))
+    #d.setGainCaps(
+
+
+def setLowGainMode(d):
+    #p=pat()
+    #setChipStatusRegister(p,CSR_default)
+    #p.load(d)
+    #d.startPattern()
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C15pre))
+    #d.setGainCaps(
+
+def setDefaultModeNP(d):
+    #p=pat()
+    #setChipStatusRegister(p,CSR_default | 1<<CSR_invpol)
+    #p.load(d)
+    #d.startPattern()
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C15pre)|(1<<CSR_invpol))
 
 def setSuperHighGainMode(d):
-    p=pat()
-    setChipStatusRegister(p,0)#CSR_C225ACsh
-    p.load(d)
-    d.startPattern()
+    d.setGainCaps(0)
+    #p=pat()
+    #setChipStatusRegister(p,0)#CSR_C225ACsh
+    #p.load(d)
+    #d.startPattern()
 
 
 def setHighestGainMode(d):
-    p=pat()
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C15sh)|int(slsdet.M3_GainCaps.M3_C10pre))
+    """p=pat()
     setChipStatusRegister(p,(1<<CSR_C10pre ) | (1<< CSR_C15sh) )
     p.load(d)
     d.startPattern()
+    """
+
+def setLowGainMode(d):
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C15pre))
+    """p=pat()
+    setChipStatusRegister(p,(1<<CSR_C10pre ) | (1<< CSR_C15sh) )
+    p.load(d)
+    d.startPattern()
+    """
 
 def setLowestGainMode(d):
-    p=pat()
+    """p=pat()
     setChipStatusRegister(p,(1<<CSR_C10pre ) | (1<< CSR_C15pre) |(1<<CSR_C15sh )|(1<<CSR_C30sh )| (1<< CSR_C50sh) |  (1<< CSR_C225ACsh) )#CSR_C225ACsh
     p.load(d)
     d.startPattern()
+    """
+    #d.setGainCaps(int(slsdet.M3_GainCaps.M3_C1Opre)|int(slsdet.M3_GainCaps.M3_C15pre)| int(slsdet.M3_GainCaps.M3_C15sh)|int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C50sh)|(1<< CSR_C225ACsh))
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C15pre)| int(slsdet.M3_GainCaps.M3_C50sh))
+    
 
 def setPumpProbeMode(d):
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C15pre)|(1<<CSR_pumprobe))
+    """
     p=pat()
     setChipStatusRegister(p,CSR_default| (1<<CSR_pumprobe))
     p.load(d)
     d.startPattern()
-    
-def setInterpolationMode(d):
+    """
+
+def pumpProbeModePattern(fname):
+    #d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C15pre)|(1<<CSR_pumprobe))
     p=pat()
+    setChipStatusRegister(p,CSR_default | (1<<CSR_pumprobe))
+    p.saveToFile(fname)
+    #p.load(d)
+    #d.startPattern()
+    
+
+def setInterpolationMode(d):
+    d.setGainCaps(int(slsdet.M3_GainCaps.M3_C30sh)|int(slsdet.M3_GainCaps.M3_C15pre)| (1<<CSR_interp))
+    """p=pat()
     setChipStatusRegister(p,CSR_default| (1<<CSR_interp))
     p.load(d)
     d.startPattern()
-    
+    """
 
 def changeClkdDiv(d,val,off=0):
     d.clkdiv[0]=val
     d.clkdiv[1]=val
     d.clkdiv[2]=val
-    d.writeRegister(0x110,off)
+    #d.writeRegister(0x110,off)
 
 
 def gain_bits_to_string(val1):
@@ -797,3 +844,7 @@ def index_to_gain(ind):
     return gg[ind]
 
 #print("DETCONFMODULE LOADED")
+
+def CSR_bits_to_string(val):
+    gains = [g for g in slsdet.M3_GainCaps.__members__ if int(getattr(slsdet.M3_GainCaps, g)) & val]
+    return ','.join([g for g in gains])
