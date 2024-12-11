@@ -36,28 +36,32 @@ class pat:
         self.iaddr+=1
         self.pattern.word[self.iaddr]=self.pattern.word[self.iaddr-1]
 
-    def PW(self,verbose=0):
-        self.pw(verbose)
-
+    def PW(self,x=1,verbose=0):
+        for i in range(x):
+            self.pw(verbose)
+            
     def REPEAT(self,x,verbose=0):
         for i in range(x):
-            self.pw()
+            self.pw(verbose)
 
     def PW2(self,verbose=0):
         self.REPEAT(2,verbose)
 
 
-    def CLOCKS(self,bit,times=1,verbose=0):
+    def CLOCKS(self,bit,times=1,length=1,verbose=0):
+    """
+    clocks "bit" n "times", every half clock is long "length"
+    lenght is optional, default value is 1
+    """
         for i in range(0,times):
-            self.SB(bit); self.pw(verbose)
-            self.CB(bit); self.pw(verbose)
+            self.SB(bit); self.PW(length,verbose)
+            self.CB(bit); self.pw(length,verbose)
 
-    def CLOCK(self,bit,verbose=0):
-        self.CLOCKS(bit,1)
+    def CLOCK(self,bit,length=1,verbose=0):
+        self.CLOCKS(bit,1,length,verbose)
 
-    #NOT DEBUGGED!!!
-    def serializer(self,value,serInBit,clkBit,nbits,msbfirst=1):
-        """serializer(value,serInBit,clkBit,nbits,msbfirst=1)
+    def serializer(self,value,serInBit,clkBit,nbits,msbfirst=1,length=1):
+        """serializer(value,serInBit,clkBit,nbits,msbfirst=1,length=1)
         Produces the .pat file needed to serialize a word into a shift register.
         value: value to be serialized
         serInBit: control bit corresponding to serial in 
@@ -65,26 +69,27 @@ class pat:
         nbits: number of bits of the target register to load
         msbfirst: if 1 pushes in the MSB first (default), 
         if 0 pushes in the LSB first
+        length: length of all the PWs in the pattern
         It produces no output because it modifies directly the members of the class pat via SB and CB"""
         c=value
         self.CB(serInBit,clkBit)
-        self.pw() #generate intial line with clk and serIn to 0
+        self.PW(length) #generate intial line with clk and serIn to 0
         start=0;stop=nbits;step=1
         if msbfirst:
             start=nbits-1;stop=-1;step=-1 #reverts loop if msb has to be pushed in first
             for i in range(start,stop,step):
                 if c & (1<<i): 
                     self.SB(serInBit)
-                    self.pw()
+                    self.PW(length)
                 else:
                     self.CB(serInBit)
-                    self.pw()
+                    self.PW(length)
                 self.SB(clkBit)
-                self.pw()
+                self.PW(length)
                 self.CB(clkBit)
-                self.pw() 
+                self.PW(length)
             self.CB(serInBit,clkBit)
-            self.pw() #generate final line with clk and serIn to 0     
+            self.PW(length) #generate final line with clk and serIn to 0     
             #NOT IMPLEMENTED YET
             #def setstop():    
             #
@@ -158,10 +163,10 @@ class pat:
         for i in range(self.pattern.limits[1]):
             l='patword '+hexFormat(i,4)+' '+hexFormat(self.pattern.word[i],16)+'\n'
             pwords+=l
-        for i in range(3):
+        for i in range(6):
             l='patloop'+str(i)+' '+hexFormat(self.pattern.loop[i*2],4)+' '+hexFormat(self.pattern.loop[i*2+1],4)+'\n'+'patnloop'+str(i)+' '+str(self.pattern.nloop[i])+'\n'
             pwords+=l
-        for i in range(3):
+        for i in range(6):
             l='patwait'+str(i)+' '+hexFormat(self.pattern.wait[i],4)+'\n'+'patwaittime'+str(i)+' '+str(self.pattern.waittime[i])+'\n'
             pwords+=l
         
