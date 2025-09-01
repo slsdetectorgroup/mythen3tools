@@ -264,8 +264,8 @@ def search_trimbits(d,rx,counts,verbose=1):
             tname=str(d.fpath)+'/tmp'+str(int(step))+'.sn'+str(sn[imod]).zfill(4)
             gain=d.getGainCaps()[0]
             dacs= d.dacs.to_array()
-            d.dacs.vth1[imod]=2400
-            d.dacs.vth2[imod]=2400
+            d.dacs.vth1[imod]=d.dacs.vth3[imod]
+            d.dacs.vth2[imod]=d.dacs.vth3[imod]
             print(gain,dacs)
             my3.write_my3_trimbits_new(tname,np.int32(gain),np.int32(dacs[:,imod]),np.int32(trimbits[:,imod]))
             print(np.mean(data[imod]),np.std(data[imod]))

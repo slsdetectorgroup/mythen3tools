@@ -131,12 +131,10 @@ ff=fname+'_TBscan'
 if findTrimbits:
     d.fname=ff
     trimbits=search_trimbits(d,rx,counts)
-    d.counters=[0,1,2]
     for imod in range(nmod):
         d.dacs.vth1[imod]=vth[imod]
         d.dacs.vth2[imod]=vth[imod]
         d.dacs.vth3[imod]=vth[imod]
-    dacs= d.dacs.to_array()
     d.counters=[2]
     print(dacs)
     gain=d.getGainCaps()[0]
