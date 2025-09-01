@@ -106,6 +106,7 @@ def _read_my3_frame(f, n_counters, dr):
 
     try:
         header = np.fromfile(f, dtype = header_dt, count = 1)
+        print(header)
     except:
         print ("Could not read header")
 

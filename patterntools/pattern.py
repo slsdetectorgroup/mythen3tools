@@ -49,10 +49,10 @@ class pat:
 
 
     def CLOCKS(self,bit,times=1,length=1,verbose=0):
-    """
-    clocks "bit" n "times", every half clock is long "length"
-    lenght is optional, default value is 1
-    """
+        """
+        clocks "bit" n "times", every half clock is long "length"
+        lenght is optional, default value is 1
+        """
         for i in range(0,times):
             self.SB(bit); self.PW(length,verbose)
             self.CB(bit); self.pw(length,verbose)

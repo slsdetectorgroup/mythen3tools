@@ -12,10 +12,10 @@ dr = 24
 
 #fname="/mnt/mythen_data/Mythen3_module/Module030161/testTrimming/Ag_40kV_40mA_cnt0_TB0_d0_f0_1.raw"
 fformat=sys.argv[1]#"/mnt/mythen_data/Mythen3_module/Module030161/testTrimming/testTB0.raw"
-nmod=np.int(sys.argv[2])
-smin=np.int(sys.argv[3])
-smax=np.int(sys.argv[4])
-sstep=np.int(sys.argv[5])
+nmod=np.int32(sys.argv[2])
+smin=np.int32(sys.argv[3])
+smax=np.int32(sys.argv[4])
+sstep=np.int32(sys.argv[5])
 ncol=1280
 thr = np.arange(smin, smax+sstep, sstep)
 nrow=len(thr)
@@ -23,8 +23,9 @@ data = np.zeros((nmod,nrow,ncol), dtype =  np.int32)
 for imod in range(nmod):
     fname=fformat.format(imod)
     head, data[imod]=my3.read_my3_file(fname,ncounters,dr)
-    if (data.shape[0]>1): 
-        psc.plot_thrscan(data[imod],smin,smax,sstep)
+    #if (data.shape[0]>1): 
+    #    psc.plot_thrscan(data[imod],smin,smax,sstep)
+#psc.plot_thrscan(data[imod],smin,smax,sstep)
 
 print(np.concatenate(data,axis=0).shape)
 print(np.concatenate(data,axis=1).shape)
@@ -32,5 +33,5 @@ print(np.concatenate(data,axis=1).shape)
 print(12*1280,len(thr))
 plt.ion()
 
-#psc.plot_thrscan(np.concatenate(data,axis=1),smin,smax,sstep)
+psc.plot_thrscan(np.concatenate(data,axis=1),smin,smax,sstep)
 

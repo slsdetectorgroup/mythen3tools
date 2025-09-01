@@ -7,7 +7,7 @@ import plot_scan as psc
 #import fit_scurve as fsc
 import matplotlib.pyplot as plt
 from thrScan import *
-from epics import caput, caget
+#from epics import caput, caget
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -16,7 +16,7 @@ matplotlib.use('TkAgg')
 #vipre
 #vipre_out (?)
 #vicin
-nscans=100
+nscans=1#00
 
 d = Mythen3()
 rx=makeReceiver(d)
@@ -29,8 +29,11 @@ nmod=len(d.hostname)
 fig1.show()
 fname="flatField_15keV_th7500eV"
 d.fwrite=1
-d.exptime=180
+d.exptime=1#180
 d.fname=fname
+d.frames=1
+d.period=0
+d.gatedelay=0.1
 d.findex=200
 myfile = open(str(d.fpath)+'/'+fname+'_'+str(d.findex)+'.log', 'w')
 data=np.zeros((nmod,len(d.counters)*1280), dtype =  to_dtype(d.dr))
@@ -41,14 +44,14 @@ for iscan in np.arange(0,nscans):
     for angle in [87,2]:
     
         d.startDetector()
-        caput('BL11I-MO-DIFF-01:DELTA.VAL',angle,wait=False)
+        #caput('BL11I-MO-DIFF-01:DELTA.VAL',angle,wait=False)
         print("moving detector to ",angle)
         time.sleep(d.exptime)
         while d.status != runStatus.IDLE:
             time.sleep(0.01)
             
             nf=np.min(d.rx_framescaught)
-            ang=caget('BL11I-MO-DIFF-01:DELTA.RBV')
+            ang=0#caget('BL11I-MO-DIFF-01:DELTA.RBV')
             myfile.write(str(ang)+'\n')
             print(ang)
             if nf>nf0:

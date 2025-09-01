@@ -28,9 +28,11 @@ d.fpath="/mnt/mythen_data/Mythen3_module/my30sTests_20211216/"
 fig1, ax1 = plt.subplots()
 
 fig1.show()
+
 data=acquireFrame(d,rx, ax1)
 mm=np.median(data)
 print(np.median(data))
+ax1.plot(np.concatenate(data,axis=0))
 #if mm>100:
 #    ax1.set_ylim(-1, mm*100) 
 #else:
@@ -39,7 +41,7 @@ print(np.median(data))
 if mm==0:
     mm=100
 #mm=500000
-ax1.set_ylim(-1, mm) 
+ax1.set_ylim(-1, mm+1) 
 fig1.canvas.draw()
 fig1.canvas.flush_events()
 

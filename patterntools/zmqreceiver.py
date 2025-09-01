@@ -24,10 +24,10 @@ class ZmqReceiver:
         header = self.socket.recv_json()
         if verbose:
             print(header["data"],header["frameIndex"])
-        #print(header)
+        print(header)
         if header["data"]>0:
             buff = self.socket.recv()
-            #print(len(buff),to_dtype(header["bitmode"]))
+            print(len(buff),to_dtype(header["bitmode"]))
             if  header["completeImage"]>0:
                 data = np.frombuffer(buff, dtype=to_dtype(header["bitmode"]))
                 #print("ok")

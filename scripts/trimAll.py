@@ -6,41 +6,42 @@ from detConf_module import *
 from trimming import *
 
 
-energy=17500
+energy=5400
 #5400
 exptime=0.1
-findex=0
-nph=[2000,2000,2000]
+findex=100
+nph=[3000,2500]#,4000, 4000, 3000]
 #nph=[4000, 4000]
 #chanmask=[[],[]]
-chanmask=[[],[],[]]
-chanmask[1]=range(128*9, 128*10)
-chanmask[2]=range(128*2, 128*3)
+chanmask=[[],[]]#,[],[],[]]
+#chanmask[0]=list(range(512,578))+list(range(630,680))+list(range(128*6,128*7))+list(range(128*9, 128*10))
+#chanmask[2]=range(128*2, 128*3)
 
 d= Mythen3()
 rx=makeReceiver(d)
 d.exptime=exptime
 d.findex=findex
 d.dacs.vicin=1500
-fpath='/mnt/mythen_data/Mythen3_module/moduleMS20220610/'
+fpath='/mnt/mythen_data/Mythen3_module/trimI0ADDAMS_20250618/'
 d.fwrite=1
 
+d.highvoltage=200
 
 d.stopReceiver()
 d.rx_zmqstream=1
 d.rx_zmqfreq=1
 
 
-for igain in range(1,3):
+for igain in range(0,1):
     if igain==0:
-        minthr=2000
+        minthr=1600
         setDefaultMode(d)
         gain="defaultGain"
         d.settings=detectorSettings.STANDARD
         sett="standard"
 
     if igain==1:
-        minthr=2800
+        minthr=2400
         setHighestGainMode(d)
         gain="highestGain"
         d.settings=detectorSettings.HIGHGAIN
@@ -92,7 +93,7 @@ for igain in range(1,3):
         
     d.counters=[0,1,2]
     maxthr=900
-    thrstep=-5
+    thrstep=-2
     nsigma=3
 
     ind=d.findex
@@ -125,3 +126,5 @@ d.settings=detectorSettings.STANDARD
 
 
 d.counters=[0]
+
+#d.highvoltage=0

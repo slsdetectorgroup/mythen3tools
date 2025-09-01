@@ -7,7 +7,7 @@ import plot_scan as psc
 #import fit_scurve as fsc
 import matplotlib.pyplot as plt
 from thrScan import *
-from epics import caput, caget
+#from epics import caput, caget
 
 import matplotlib
 matplotlib.use('TkAgg')
@@ -29,7 +29,7 @@ nmod=len(d.hostname)
 fig1.show()
 fname="angularCalibration_15keV_1s"
 d.fwrite=1
-d.exptime=1
+d.exptime=0.1
 d.fname=fname
 d.findex=0
 myfile = open(str(d.fpath)+'/'+fname+'_'+str(d.findex)+'.log', 'w')
@@ -38,7 +38,7 @@ data=np.zeros((nmod,len(d.counters)*1280), dtype =  to_dtype(d.dr))
 nf0=0
 d.startReceiver()
 for angle in np.arange(2,87,0.1):
-    caput('BL11I-MO-DIFF-01:DELTA.VAL',angle,wait=True)
+    #caput('BL11I-MO-DIFF-01:DELTA.VAL',angle,wait=True)
     #data=acquireFrame(d,rx, ax1)
     d.startDetector()
     time.sleep(d.exptime)
@@ -46,7 +46,7 @@ for angle in np.arange(2,87,0.1):
         time.sleep(0.01)
 
     nf=np.min(d.rx_framescaught)
-    ang=caget('BL11I-MO-DIFF-01:DELTA.RBV')
+    ang=0#caget('BL11I-MO-DIFF-01:DELTA.RBV')
     myfile.write(str(ang)+'\n')
     print(ang)
     if nf>nf0:

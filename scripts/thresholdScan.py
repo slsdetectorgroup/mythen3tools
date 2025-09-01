@@ -7,6 +7,8 @@ import plot_scan as psc
 #import fit_scurve as fsc
 import matplotlib.pyplot as plt
 from thrScan import *
+import time
+
 
 
 #import matplotlib
@@ -22,7 +24,7 @@ from thrScan import *
 d = Mythen3()
 print(d.hostname)
 rx=makeReceiver(d)
-print("receiver done")
+#print("receiver done")
 #d.powerchip=1
 #d.fname="test"
 #d.fpath="/mnt/mythen_data/Mythen3_module/my30sTests_20211216/"
@@ -31,24 +33,38 @@ print("receiver done")
 
 #import superhighgain
 
-#d.highvoltage=200
+#
 
-#d.counters=[0]
-smin=1800
-smax=700
-sstep=-10
+d.exptime=0.1
+d.counters=[0]
+smin=700
+smax=1300
+sstep=5
 dac=dacIndex.VTH1
-#d.dacs.vth2=2400
+
+#d.dacs.vth1=1200
+
 #d.dacs.vth3=200
 
 
-#d.exptime=0.1
-
-
-
+d.highvoltage=200
 data_thr=scan(d,rx,dac, smin, smax, sstep)
-aa=np.concatenate(data_thr,axis=1)
+#d.highvoltage=0
 
+#aa=np.concatenate(data_thr[:][1:5],axis=1)
+aa=np.concatenate(data_thr,axis=1)
 psc.plot_thrscan(aa,smin,smax,sstep)
 #plt.show()
+d.highvoltage=0
+"""
+
+time.sleep(10) # Sleep for 3 seconds
+data_thr=scan(d,rx,dac, smin, smax, sstep)
+aa=np.concatenate(data_thr,axis=1)
+psc.plot_thrscan(aa,smin,smax,sstep)
+"""
+m=int(((smax-smin)/sstep+1)/2)
+print(np.median(data_thr[0,m,:]))
+print(np.where(aa[m]<0.1* np.median(data_thr[0,m,:])))
+print(np.where(aa[m]>5* np.median(data_thr[0,m,:])))
 

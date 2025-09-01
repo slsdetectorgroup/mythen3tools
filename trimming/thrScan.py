@@ -79,6 +79,7 @@ def acquireFrame(d,rx, ax1=None):
     data=np.zeros((nmod,len(d.counters)*1280), dtype =  to_dtype(d.dr))
     header=[]
     nf0=0
+    #time.sleep(d.exptime)
     time.sleep(d.exptime)
     while d.status != runStatus.IDLE:
         time.sleep(0.01)
@@ -179,6 +180,7 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
                 dd, hh = rx[imod].receive_one_frame()
                 data.append(dd)
                 header.append(hh)
+                #print(header)
                 #if imod==0:
                     #print(ith, hh["frameIndex"])
    
@@ -186,6 +188,7 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
     for i in range(int(len(header)/nmod)):
         for imod in range(nmod):
             fn=header[imod+i*nmod]["frameIndex"]
+            #print(fn)
             if data[imod+i*nmod] is not None:
                 if fn<data_thr.shape[1]:
                     data_thr[imod,fn]=data[imod+i*nmod]
@@ -193,7 +196,7 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
                     print(i, imod,header[imod+i*nmod])
             else:
                 print(i, imod,"lost frame")
-                
+    
     d.stopReceiver()
     #receive dummy packet
     for imod in range(len(d.hostname)):
