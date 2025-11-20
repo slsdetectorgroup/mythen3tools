@@ -35,11 +35,11 @@ rx=makeReceiver(d)
 
 #
 
-d.exptime=0.1
+d.exptime=1
 d.counters=[0]
-smin=700
+smin=800
 smax=1300
-sstep=5
+sstep=10
 dac=dacIndex.VTH1
 
 #d.dacs.vth1=1200

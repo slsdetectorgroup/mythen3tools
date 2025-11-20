@@ -6,14 +6,14 @@ from detConf_module import *
 from trimming import *
 
 
-energy=5400
+energy=8000
 #5400
-exptime=0.1
-findex=100
-nph=[3000,2500]#,4000, 4000, 3000]
+exptime=1
+findex=103
+nph=[1200,1200, 1200,1200, 1200,1200, 1200,1200 ]#,4000, 4000, 3000]
 #nph=[4000, 4000]
 #chanmask=[[],[]]
-chanmask=[[],[]]#,[],[],[]]
+chanmask=[[],[],[],[],[],[],[],[]]
 #chanmask[0]=list(range(512,578))+list(range(630,680))+list(range(128*6,128*7))+list(range(128*9, 128*10))
 #chanmask[2]=range(128*2, 128*3)
 
@@ -22,7 +22,7 @@ rx=makeReceiver(d)
 d.exptime=exptime
 d.findex=findex
 d.dacs.vicin=1500
-fpath='/mnt/mythen_data/Mythen3_module/trimI0ADDAMS_20250618/'
+fpath='/mnt/mythen_data/Mythen3_module/trimMax4_20251111/'
 d.fwrite=1
 
 d.highvoltage=200
@@ -34,7 +34,7 @@ d.rx_zmqfreq=1
 
 for igain in range(0,1):
     if igain==0:
-        minthr=1600
+        minthr=1400
         setDefaultMode(d)
         gain="defaultGain"
         d.settings=detectorSettings.STANDARD
@@ -93,7 +93,7 @@ for igain in range(0,1):
         
     d.counters=[0,1,2]
     maxthr=900
-    thrstep=-2
+    thrstep=-5
     nsigma=3
 
     ind=d.findex
