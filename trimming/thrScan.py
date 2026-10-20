@@ -6,11 +6,32 @@ from slsdet.lookup import view, find
 import plot_scan as psc 
 #import fit_scurve as fsc
 import matplotlib.pyplot as plt
+from matplotlib._pylab_helpers import Gcf
+import time
 
 try:
     from tqdm import tqdm
 except ImportError:  # the progress bar is optional
     tqdm = None
+
+
+DAC_SETTLE = 0.05   # seconds between setting the dac and starting the detector
+
+
+def wait(seconds):
+    """Sleep while keeping open figures painted and responsive.
+
+    Runs the GUI event loop for the interval, so plots made earlier in a
+    script show up during the scan instead of at the end. Unlike plt.pause
+    it does not re-show the figures, which would raise every window and
+    move the keyboard focus around on each call."""
+    managers = Gcf.get_all_fig_managers()
+    if not managers:
+        time.sleep(seconds)
+    elif seconds > 0:
+        managers[0].canvas.start_event_loop(seconds)
+    else:
+        managers[0].canvas.flush_events()
 
 
 #def startAcquisition(d):
@@ -84,10 +105,9 @@ def acquireFrame(d,rx, ax1=None, verbose=False):
     data=np.zeros((nmod,len(d.counters)*1280), dtype =  to_dtype(d.dr))
     header=[]
     nf0=0
-    #time.sleep(d.exptime)
-    time.sleep(d.exptime)
+    wait(d.exptime)
     while d.status != runStatus.IDLE:
-        time.sleep(0.01)
+        wait(0.01)
 
     nf=np.min(d.rx_framescaught)
     if nf>nf0:
@@ -152,9 +172,12 @@ def scan(d,rx,dac, minthr, maxthr, thrstep, progress=True):
     header=[]
     nf0=0
     d.startReceiver()
+    name=f"scan {getattr(dac, 'name', dac)}".lower()
     steps=range(minthr,maxthr+thrstep,thrstep)
+    nsteps=len(steps)
     if progress and tqdm is not None:
-        steps=tqdm(steps, desc=f"scan {getattr(dac, 'name', dac)}".lower(), unit="step")
+        steps=tqdm(steps, desc=name, unit="step")
+    t_scan=time.perf_counter()
     for ith in steps:
         #d.fname=ff+"_S"+str(ith)
         #d.findex=ind
@@ -175,13 +198,13 @@ def scan(d,rx,dac, minthr, maxthr, thrstep, progress=True):
             d.dacs.vtrim=ith
             #print("vtrim",d.dacs.vtrim);
         #print(d.settings,d.exptime,d.timing)
-        time.sleep(0.05)
+        wait(DAC_SETTLE)
         d.startDetector()
         #d.acquire()  
         #print(d.status)
-        time.sleep(d.exptime)
+        wait(d.exptime)
         while d.status != runStatus.IDLE:
-            time.sleep(0.01)
+            wait(0.01)
             #print(d.status)
 
         nf=np.min(d.rx_framescaught)
@@ -196,6 +219,7 @@ def scan(d,rx,dac, minthr, maxthr, thrstep, progress=True):
                 #if imod==0:
                     #print(ith, hh["frameIndex"])
    
+    t_loop=time.perf_counter()-t_scan
 
     for i in range(int(len(header)/nmod)):
         for imod in range(nmod):
@@ -215,6 +239,12 @@ def scan(d,rx,dac, minthr, maxthr, thrstep, progress=True):
         dd, hh = rx[imod].receive_one_frame()
     #sp.enable=0
     #d.setScan(sp)
+    if progress:
+        exposure=nsteps*float(d.exptime)
+        settle=nsteps*DAC_SETTLE
+        overhead=t_loop-exposure-settle
+        print(f"{name}: {nsteps} steps in {t_loop:.2f} s = exposure {exposure:.2f} s"
+              f" + settle {settle:.2f} s + overhead {overhead:.2f} s ({1e3*overhead/nsteps:.1f} ms/step)")
     return data_thr
 
 

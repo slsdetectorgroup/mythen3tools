@@ -8,9 +8,9 @@ from trimming import *
 
 energy=8000
 #5400
-exptime=1
+exptime=0.1
 findex=103
-nph=[1200,1200, 1200,1200, 1200,1200, 1200,1200 ]#,4000, 4000, 3000]
+nph=[3000,1200, 1200,1200, 1200,1200, 1200,1200 ]#,4000, 4000, 3000]
 #nph=[4000, 4000]
 #chanmask=[[],[]]
 chanmask=[[],[],[],[],[],[],[],[]]
@@ -22,7 +22,7 @@ rx=makeReceiver(d)
 d.exptime=exptime
 d.findex=findex
 d.dacs.vicin=1500
-fpath='/mnt/mythen_data/Mythen3_module/trimMax4_20251111/'
+fpath='/mnt/ssd/mythen'
 d.fwrite=1
 
 d.highvoltage=200

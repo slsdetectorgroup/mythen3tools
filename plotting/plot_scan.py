@@ -227,7 +227,9 @@ class ThrScanViewer:
 
     # ------------------------------------------------------------ public API
     def show(self):
+        """Show the window and let the GUI paint it before returning."""
         self.fig.show()
+        self.fig.canvas.start_event_loop(0.05)
 
     def select(self, channel=None, row=None, threshold=None, draw=True):
         """Move the crosshair. ``threshold`` is a value on the scan axis."""
