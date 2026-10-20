@@ -30,6 +30,7 @@ The viewer can be filled while a scan is running::
 """
 
 import numpy as np
+import boost_histogram as bh
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import MouseButton
@@ -398,6 +399,50 @@ def plot_thrscan(adata, smin, smax, sstep, **kwargs):
     viewer = ThrScanViewer(adata, smin, smax, sstep, **kwargs)
     viewer.show()
     return viewer
+
+
+def histogram(values, lo, hi, width):
+    """boost-histogram of ``values`` with regular bins of ``width`` from
+    ``lo`` up to ``hi`` (rounded up to whole bins)."""
+    nbins = max(int(np.ceil((hi - lo) / width - 1e-9)), 1)
+    h = bh.Histogram(bh.axis.Regular(nbins, lo, lo + nbins * width))
+    h.fill(np.asarray(values, dtype=float).ravel())
+    return h
+
+
+def plot_histogram(ax, h, color="C0", label=None, alpha=0.5):
+    """Draw a 1D boost-histogram as filled steps; returns the StepPatch."""
+    return ax.stairs(h.values(), h.axes[0].edges, fill=True, facecolor=color,
+                     edgecolor=color, alpha=alpha, linewidth=1, label=label)
+
+
+def plot_threshold_dispersion(before, after, bin_width=2,
+                              labels=("before trimming", "after trimming")):
+    """Histograms of the fitted threshold (S-curve inflection point) per
+    channel before and after trimming, on common bins of ``bin_width`` DAC.
+
+    Channels with value 0 (not fitted or masked) are left out. Returns
+    (fig, ax)."""
+    sets = [np.asarray(v, dtype=float).ravel() for v in (before, after)]
+    sets = [v[v > 0] for v in sets]
+    width = float(bin_width)
+    allv = np.concatenate(sets)
+    if len(allv) == 0:
+        allv = np.array([0.0, width])
+    lo = np.floor(allv.min() / width) * width - width
+    hi = np.ceil(allv.max() / width) * width + width
+    fig, ax = plt.subplots()
+    for v, label, color in zip(sets, labels, ("C0", "C3")):
+        if len(v) == 0:
+            ax.plot([], [], color=color, label=f"{label}: no fitted channels")
+            continue
+        plot_histogram(ax, histogram(v, lo, hi, width), color=color,
+                       label=f"{label}: median {np.median(v):.1f}, rms {v.std():.1f} ({len(v)} ch)")
+    ax.set_xlabel("Threshold (DAC)")
+    ax.set_ylabel("Channels")
+    ax.set_title("Threshold dispersion")
+    ax.legend(loc="upper left")
+    return fig, ax
 
 
 def plot_simple_thrscan(adata, threshold, cmap="viridis", **kwargs):

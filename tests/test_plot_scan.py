@@ -225,3 +225,32 @@ def test_wrappers_keep_their_signatures(data):
     assert ax.get_ylim() == (SMIN - SSTEP / 2, SMAX + SSTEP / 2)
     fig, ax = psc.plot_simple_thrscan(data, np.arange(SMAX, SMIN - SSTEP, -SSTEP))
     assert ax.get_ylim() == (SMIN - SSTEP / 2, SMAX + SSTEP / 2)
+
+
+def test_threshold_dispersion_histograms():
+    rng = np.random.default_rng(0)
+    before = rng.normal(1190, 40, 1280)
+    after = rng.normal(1250, 4, 1280)
+    before[:20] = 0                       # unfitted channels are skipped
+    fig, ax = psc.plot_threshold_dispersion(before, after)
+    labels = [t.get_text() for t in ax.get_legend().get_texts()]
+    assert labels[0].startswith("before trimming") and "1260 ch" in labels[0]
+    assert labels[1].startswith("after trimming") and "1280 ch" in labels[1]
+    steps = [p.get_data() for p in ax.patches]
+    assert len(steps) == 2
+    assert all(np.allclose(s.edges % 2, 0) for s in steps)          # 2 DAC bins on a common grid
+    assert [int(s.values.sum()) for s in steps] == [1260, 1280]      # every fitted channel is in a bin
+    assert np.array_equal(steps[0].edges, steps[1].edges)
+    fig, ax = psc.plot_threshold_dispersion(np.zeros(10), after)   # nothing fitted before
+    assert "no fitted channels" in ax.get_legend().get_texts()[0].get_text()
+
+
+def test_histogram_helper():
+    h = psc.histogram([0.5, 1.5, 1.7, 10.0], 0, 4, 1)
+    np.testing.assert_array_equal(h.values(), [1, 2, 0, 0])
+    np.testing.assert_array_equal(h.axes[0].edges, [0, 1, 2, 3, 4])
+    h = psc.histogram([3.0], 0, 7, 2)                       # range rounded up to whole bins
+    np.testing.assert_array_equal(h.axes[0].edges, [0, 2, 4, 6, 8])
+    fig, ax = plt.subplots()
+    patch = psc.plot_histogram(ax, h, label="x")
+    assert ax.get_legend_handles_labels()[1] == ["x"] and patch.get_data().values.sum() == 1

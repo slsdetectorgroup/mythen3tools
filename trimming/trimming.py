@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import sys
 import read_mythen as my3
 import time
-import multiprocessing as mp
 from steptimer import timer
 
 def set_sign(s):
@@ -83,7 +82,7 @@ def find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma=
     if len(counts[counts==0])>0:
         counts[counts==0]=np.median(counts[counts>0])
     print("done with fitting function")
-    return thr0,counts
+    return thr0,counts,flex
 
 
 def find_target_threshold_pool(arg):
@@ -95,7 +94,8 @@ def find_target_threshold_pool(arg):
     nSigma=arg[5] 
     outFname=arg[6]
     chanmask=arg[7]
-    return find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma, outFname)
+    thr0, counts, flex = find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma, outFname)
+    return thr0, counts
 
 def find_target_vtrim(data, smin, smax, counts,chanmask, nSigma=5):
     if (data.shape[0]>1):
@@ -103,23 +103,18 @@ def find_target_vtrim(data, smin, smax, counts,chanmask, nSigma=5):
     else:
         sstep=1
         print("NO SCAN!")
-    vtrim = np.arange(smin, smax+sstep, sstep)
+    vtrim = np.arange(smin, smax+sstep, sstep)[:data.shape[0]]
     inds=np.arange(0, vtrim.shape[0])
     if sstep>0 and get_sign():
         inds=np.flip(inds,0)
     if sstep<0 and get_sign()==False:
         inds=np.flip(inds,0)
-    flex=np.ndarray(data.shape[1], dtype=np.float64)
-    
-    for ich in  np.arange(0, data.shape[1]):
-        flex[ich]=0
-        val=data[:,ich]
-        for i, itrim in enumerate(inds,start=-0):
-        #for itrim in inds:  
-            flex[ich]=vtrim[itrim]
-            if val[itrim]>counts[ich]:
-                break
-        
+    # Walk the scan from the baseline end and take the first vtrim where the
+    # counts exceed the channel's target; the last visited vtrim if never.
+    exceed = data[inds] > np.asarray(counts)[None, :]
+    first = np.where(exceed.any(axis=0), exceed.argmax(axis=0), len(inds) - 1)
+    flex = vtrim[inds][first].astype(np.float64)
+
 
     #print("flex\n",flex)
     #print("counts\n",counts)
@@ -162,37 +157,26 @@ def find_target_vtrim(data, smin, smax, counts,chanmask, nSigma=5):
 
 def find_trimbits(data, counts, smin=0, smax=63):
     print(data.shape,smin,smax)
-    if (data.shape[0]>1):
-        sstep=(smax-smin)/(data.shape[0]-1)
+    if data.shape[0] <= 1:
+        raise ValueError("trimbit scan needs more than one step")
+    sstep=(smax-smin)/(data.shape[0]-1)
 
-    trims = np.arange(smin, smax+sstep, sstep)
+    trims = np.arange(smin, smax+sstep, sstep)[:data.shape[0]]
 
     inds=np.arange(0, trims.shape[0])
     if get_sign()==False:
         inds=np.flip(inds,0)
 
-    tb = np.empty(data.shape[1],dtype=np.int32)
-    for ich in  np.arange(0, data.shape[1]):
-        tb[ich]=0
-        val=data[:,ich]
-        for itrim in inds:
-            tb[ich]=trims[itrim]
-            if val[itrim]>counts[ich]-np.sqrt(counts[ich]):
-                if itrim<trims.shape[0]-1:
-                    if val[itrim+1]>counts[ich]-np.sqrt(counts[ich]):
-                        break
-                else:
-                    break
-
-        if tb[ich]<0:
-            tb[ich]=0
-        if tb[ich]>63:
-            tb[ich]=63
-        """
-        if tb[ich]==63:
-            print(ich,counts[ich],data[:,ich])
-        """
-    return tb
+    # First trimbit (in walk order) where the counts exceed target - sqrt(target)
+    # and the point at the next array index does too (the last index needs no
+    # neighbour); the last visited trimbit if no point qualifies.
+    target = np.asarray(counts) - np.sqrt(np.asarray(counts))
+    above = data > target[None, :]
+    above_next = np.vstack([above[1:], np.ones((1, above.shape[1]), dtype=bool)])
+    ok = (above & above_next)[inds]
+    first = np.where(ok.any(axis=0), ok.argmax(axis=0), len(inds) - 1)
+    tb = trims[inds][first].astype(np.int32)
+    return np.clip(tb, 0, 63)
 
 def search_trimbits(d,rx,counts,verbose=1):
     nmod=d.nmod
@@ -290,7 +274,6 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
     counters=d.counters
     nmod=len(d.hostname)
     #sp=scanParameters()
-    pool = mp.Pool(processes=nmod)
 
     fn=d.fname
     ind=d.findex
@@ -316,6 +299,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
     nrow = len(threshold)
     vth= np.zeros((len(counters),nmod), dtype = np.int32)
     counts= np.zeros((3,nmod,1280), dtype = np.int32)
+    flex_before = np.zeros((3,nmod,1280))     # fitted inflection point per channel, 0 if not fitted
     data_thr = np.zeros((3,nmod,nrow,ncol), dtype =  to_dtype(d.dr))
     #ii=0
     outfname=None
@@ -340,45 +324,18 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
         with timer.step(f"plot threshold scan c{ic}"):
             psc.plot_thrscan(np.concatenate(data_thr[ic],axis=1), minthr, maxthr, thrstep)
         
-        args=[]
-        for imod in range(nmod):
-            #if len(nph)==1:
-            #    nph1=nph
-            #else:
-            #    nph1=nph[imod]
-            if ic>0:
-                ff=vth[0,imod]
-                #v=np.median(counts[0,imod])
-                #va=np.sqrt(np.var(counts[0,imod]))
-                #if v>0.1*nph and v<2*nph:
-                #    nph1=v
-                """
-                vth[ic,imod],counts[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph, ff, nsigma, outfname)
-                #ii=ii+1
-                print("MODULE",imod,"THRESHOLD",ic,"IS",vth[ic,imod],"; MEAN COUNTS",np.mean(counts[ic,imod]))
-                """
-            arg=[]
-            arg.append(data_thr[ic,imod])
-            arg.append(minthr)
-            arg.append(maxthr)
-            arg.append(nph[imod])
-            arg.append(ff) 
-            arg.append(nsigma) 
-            if verbose==1:
-                outfname=str(d.fpath)+'/thrdisp_'+fn+'_TB0_c'+str(ic)+'_d'+str(imod)+'_'+str(ind)+'.dat'
-            arg.append(outfname)
-            print('**badchans',chanmask[imod])
-            arg.append(chanmask[imod])
-            args.append(arg)
-        #pool = mp.Pool(processes=nmod)
-        #results = [pool.apply(find_target_threshold, args=(data_thr[ic,imod], minthr, maxthr, nph, ff, nsigma, outfname,)) for imod in range(nmod)]
+        # The fit takes ~50 ms per module with aare, so the modules are
+        # fitted one after the other in this process (no worker pool).
         print("*** Fitting counter",ic)
         with timer.step(f"threshold fit c{ic}"):
-            results = pool.map(find_target_threshold_pool, args)
-        #print(results)
-        for imod in range(nmod):
-            vth[ic,imod],counts[ic,imod]=results[imod]
-            print ("MODULE",imod,"COUNTER",ic,"THRESHOLD",vth[ic,imod]);
+            for imod in range(nmod):
+                if ic>0:
+                    ff=vth[0,imod]
+                if verbose==1:
+                    outfname=str(d.fpath)+'/thrdisp_'+fn+'_TB0_c'+str(ic)+'_d'+str(imod)+'_'+str(ind)+'.dat'
+                print('**badchans',chanmask[imod])
+                vth[ic,imod],counts[ic,imod],flex_before[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph[imod], ff, chanmask[imod], nsigma, outfname)
+                print ("MODULE",imod,"COUNTER",ic,"THRESHOLD",vth[ic,imod]);
                    
         
         fig, ax = plt.subplots()
@@ -541,7 +498,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
             trimbits[ic::3,imod]=trimbits[0::3,imod]
         
     print(Vtrim)
-    return vth,Vtrim,trimbits
+    return vth,Vtrim,trimbits,flex_before
         
 
     ###########################################################
@@ -571,6 +528,7 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
     nrow = len(threshold)
     vth= np.zeros((len(counters),nmod), dtype = np.int32)
     counts= np.zeros((3,nmod,ncol), dtype = np.int32)
+    flex_after = np.zeros((3,nmod,ncol))      # fitted inflection point per channel after trimming
     data_thr = np.zeros((3,nmod,nrow,ncol), dtype =  to_dtype(d.dr))
     #ii=0
     outfname=None
@@ -593,6 +551,14 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
             outfname=str(d.fpath)+'/thrdisp_'+fn+'_trimmed_c'+str(ic)+'_'+str(ind)+'.dat'
         with timer.step(f"test scan c{ic}"):
             data_thr[ic]= scan(d,rx,dac, minthr, maxthr, thrstep)
+        print("*** Fitting trimmed scan counter",ic)
+        with timer.step(f"test fit c{ic}"):
+            for imod in range(nmod):
+                if verbose==1:
+                    outfname=str(d.fpath)+'/thrdisp_'+fn+'_trimmed_c'+str(ic)+'_d'+str(imod)+'_'+str(ind)+'.dat'
+                vth[ic,imod],counts[ic,imod],flex_after[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph[imod], ff, chanmask[imod], 0, outfname)
+                fitted=flex_after[ic,imod][flex_after[ic,imod]>0]
+                print("MODULE",imod,"COUNTER",ic,"TRIMMED THRESHOLD median",np.median(fitted) if len(fitted) else 0,"RMS",np.std(fitted) if len(fitted) else 0)
         """       
         flex,noise,ampl,cs,cc=fsc.fit_all(threshold,data_thr[ic])
 
@@ -641,7 +607,7 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
          #   vth[ic,imod],counts[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph, ff, nsigma, outfname)
     """
 
-    return data_thr,vth
+    return data_thr,vth,flex_after
         
 
         
@@ -660,7 +626,7 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     print("starting trimming", d.settings, minthr, maxthr, thrstep)
     timer.reset()
     start = time.time()
-    vth,vtrim,trimbits=trim_f(d,rx,minthr, maxthr, thrstep,nph, chanmask, nsigma, verbose)
+    vth,vtrim,trimbits,flex_before=trim_f(d,rx,minthr, maxthr, thrstep,nph, chanmask, nsigma, verbose)
 
     end = time.time()
     d.counters=[0,1,2]
@@ -690,7 +656,7 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     fname=str(d.fpath)+'/'+ff+'_'+str(d.findex)
     d.trimbits=fname
     print(chanmask)
-    tdata,vth=test_trimming(d,rx,minthr+100, maxthr+100, thrstep,nph,  chanmask, verbose)
+    tdata,vth,flex_after=test_trimming(d,rx,minthr+100, maxthr+100, thrstep,nph,  chanmask, verbose)
  
     end = time.time()
     print('Including testing:',end - start,'seconds')
@@ -737,8 +703,20 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     fig1, ax1 = plt.subplots()
     for imod in range(nmod):
         for ic in range(3):
-            ax1.hist(trimbits[ic::3,imod], bins=64,range=(0,64))
+            psc.plot_histogram(ax1, psc.histogram(trimbits[ic::3,imod], 0, 64, 1), color=f"C{ic}",
+                               label=f"module {imod} counter {ic}")
+    ax1.set_xlabel("Trimbit")
+    ax1.set_ylabel("Channels")
+    ax1.legend()
     fig1.show()
+
+    # threshold dispersion before and after trimming, counter 0, all modules
+    fig2, ax2 = psc.plot_threshold_dispersion(flex_before[0], flex_after[0])
+    fig2.show()
+    for label, fl in (("before", flex_before[0]), ("after", flex_after[0])):
+        v = fl[fl > 0]
+        if len(v):
+            print("THRESHOLD DISPERSION", label, "trimming: median", np.median(v), "RMS", np.std(v), "channels", len(v))
 
     timer.report("Trimming steps")
     return vth,vtrim,trimbits
