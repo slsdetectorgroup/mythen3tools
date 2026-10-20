@@ -7,6 +7,11 @@ import plot_scan as psc
 #import fit_scurve as fsc
 import matplotlib.pyplot as plt
 
+try:
+    from tqdm import tqdm
+except ImportError:  # the progress bar is optional
+    tqdm = None
+
 
 #def startAcquisition(d):
     ## use for many modules until fixed
@@ -65,7 +70,7 @@ def acquire(d,rx,longwait=False):
 
 """
  
-def acquireFrame(d,rx, ax1=None):
+def acquireFrame(d,rx, ax1=None, verbose=False):
     
 
     nmod=len(d.hostname)
@@ -92,7 +97,7 @@ def acquireFrame(d,rx, ax1=None):
             dd, hh = rx[imod].receive_one_frame()
             if dd is not None:
                 data[imod]=dd
-            if imod==0:
+            if verbose and imod==0:
                 print(hh["frameIndex"])
    
 
@@ -108,7 +113,11 @@ def acquireFrame(d,rx, ax1=None):
         ax1.plot(aa)
     return data
    
-def scan(d,rx,dac, minthr, maxthr, thrstep):
+def scan(d,rx,dac, minthr, maxthr, thrstep, progress=True):
+    """Step dac from minthr to maxthr and return (nmod, nsteps, nchan) counts.
+
+    Shows a tqdm progress bar over the steps when tqdm is installed and
+    progress is True."""
     sp=scanParameters()
 
     d.rx_zmqstream=1
@@ -143,7 +152,10 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
     header=[]
     nf0=0
     d.startReceiver()
-    for ith in range(minthr,maxthr+thrstep,thrstep):
+    steps=range(minthr,maxthr+thrstep,thrstep)
+    if progress and tqdm is not None:
+        steps=tqdm(steps, desc=f"scan {getattr(dac, 'name', dac)}".lower(), unit="step")
+    for ith in steps:
         #d.fname=ff+"_S"+str(ith)
         #d.findex=ind
 
@@ -193,9 +205,9 @@ def scan(d,rx,dac, minthr, maxthr, thrstep):
                 if fn<data_thr.shape[1]:
                     data_thr[imod,fn]=data[imod+i*nmod]
                 else:
-                    print(i, imod,header[imod+i*nmod])
+                    print(f"step {i} module {imod}: frame {fn} outside the scan", header[imod+i*nmod])
             else:
-                print(i, imod,"lost frame")
+                print(f"step {i} module {imod}: lost frame")
     
     d.stopReceiver()
     #receive dummy packet

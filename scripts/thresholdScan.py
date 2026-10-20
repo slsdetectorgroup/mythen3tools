@@ -35,7 +35,7 @@ rx=makeReceiver(d)
 
 #
 
-d.exptime=1
+d.exptime=0.1
 d.counters=[0]
 smin=800
 smax=1300
