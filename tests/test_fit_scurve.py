@@ -119,3 +119,21 @@ def test_matches_lmfit_on_a_real_scan():
     assert np.abs(ampl - ref["ampl"])[ok].max() < 0.5
     assert np.abs(cs - ref["cs"])[ok].max() < 1e-5
     assert np.abs(counts - ref["counts"])[ok].max() < 0.25
+
+
+def test_records_carry_the_fitted_range_and_evaluate_matches_the_model():
+    data, flex, noise, A, cs = synthetic(THR_DESC, True)
+    fsc.init_params(1500, 3000)
+    rec = fsc.fit_all_records(THR_DESC, data, [])
+    assert rec.dtype == fsc.FIT_DTYPE
+    good = rec["flex"] > 0
+    assert not good[:6].any() and good[6:].all()
+    assert (rec["hi"][good] == 1400).all()                      # the baseline end is always fitted
+    assert (rec["lo"][good] > 900).all()                        # the noise end is cut away
+    assert (rec[~good]["lo"] == 0).all() and (rec[~good]["hi"] == 0).all()
+    valid = fsc.fit_range(THR_DESC, data, 6000)
+    np.testing.assert_array_equal(rec["lo"][good], [THR_DESC[valid[:, i]].min() for i in np.flatnonzero(good)])
+    y = fsc.evaluate(THR_DESC, rec[6])
+    np.testing.assert_allclose(y, fsc.scurve(THR_DESC.astype(float), 0, 0, rec["flex"][6], rec["noise"][6], rec["ampl"][6], rec["cs"][6]))
+    f, n, a, c, counts = fsc.fit_all(THR_DESC, data, [])     # the tuple API is the same records
+    np.testing.assert_array_equal(f, rec["flex"])

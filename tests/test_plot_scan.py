@@ -254,3 +254,26 @@ def test_histogram_helper():
     fig, ax = plt.subplots()
     patch = psc.plot_histogram(ax, h, label="x")
     assert ax.get_legend_handles_labels()[1] == ["x"] and patch.get_data().values.sum() == 1
+
+
+def test_fit_curve_in_channel_panel(data):
+    v = psc.ThrScanViewer(data, SMIN, SMAX, SSTEP)
+    assert v._line_c.get_marker() == "." and v._line_c.get_linestyle() == "None"
+    params = np.zeros(NCOL, dtype=[("flex", "f8"), ("noise", "f8"), ("lo", "f8"), ("hi", "f8")])
+    params[5] = (1050.0, 30.0, 900.0, 1200.0)
+    model = lambda th, p: 1000.0 * (th >= p["flex"])
+    v.set_fit(params, model)
+    v.select(channel=5, draw=False)
+    counts, thr = v._line_fit.get_data()
+    assert thr[0] == 900 and thr[-1] == 1200 and len(thr) == 121       # step/4 grid over the fitted range only
+    np.testing.assert_array_equal(counts, model(thr, params[5]))
+    assert v._readout.get_text().endswith("fit: flex 1050.0, noise 30.0")
+    v.select(channel=6, draw=False)
+    assert len(v._line_fit.get_xdata()) == 0 and v._readout.get_text().endswith("no fit")
+    v.set_fit(params, model, label=lambda p: f"mu={p['flex']:.0f}")
+    v.select(channel=5, draw=False)
+    assert v._readout.get_text().endswith("mu=1050")
+    with pytest.raises(ValueError):
+        v.set_fit(params[:10], model)
+    with pytest.raises(ValueError):
+        v.set_fit(np.zeros(NCOL, dtype=[("flex", "f8")]), model)

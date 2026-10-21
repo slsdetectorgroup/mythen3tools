@@ -138,7 +138,10 @@ def test_pool_helper_still_available():
 
 def test_find_target_threshold_returns_inflection_points():
     ref = np.load(ROOT / "tests" / "data" / "mythen3_thrscan_lmfit.npz")
-    thr0, counts, flex = quiet(trimming.find_target_threshold, ref["data"], 1400, 900, 3000, 1500, [3], 3, None)
+    thr0, counts, fit = quiet(trimming.find_target_threshold, ref["data"], 1400, 900, 3000, 1500, [3], 3, None)
+    flex = fit["flex"]
+    assert fit.dtype == trimming.fsc.FIT_DTYPE
     assert flex.shape == (1280,) and flex[3] == 0 and (flex[ref["flex"] > 0] > 0).sum() >= 1245
+    assert (fit["hi"][flex > 0] == 1400).all() and (fit["lo"][flex > 0] >= 900).all()
     assert 1200 < thr0 < 1300
     assert len(quiet(trimming.find_target_threshold_pool, [ref["data"], 1400, 900, 3000, 1500, 3, None, []])) == 2

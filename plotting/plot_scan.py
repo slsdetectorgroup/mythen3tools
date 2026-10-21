@@ -18,6 +18,9 @@ Mouse and keyboard on the figure:
     l or checkbox     counts on a log scale (image, side panels and colour bar)
     toolbar           pan and zoom as usual, all panels follow
 
+After ``set_fit`` the channel panel also draws the fitted curve of the
+selected channel over the threshold range the fit used.
+
 The arrow keys and l, k, L are taken away from matplotlib's default key
 bindings when the first viewer is created (c, v and backspace still step
 through the zoom history).
@@ -41,6 +44,8 @@ BLOCK = 1280  # channels per counter and module
 
 _CURSOR = dict(color="C3", lw=0.8, alpha=0.9)
 _CURVE = dict(color="C0", lw=1.0)
+_POINTS = dict(color="C0", linestyle="none", marker=".", markersize=4)
+_FIT = dict(color="C1", lw=1.2)
 
 
 class _BlitManager:
@@ -141,6 +146,9 @@ class ThrScanViewer:
         self.row = nrow // 2
         self.vmin = 0.0
         self.vmax = float(vmax) if vmax is not None else self._default_vmax()
+        self._fit = None
+        self._fit_model = None
+        self._fit_label = None
         if self.vmax <= self.vmin:
             raise ValueError("vmax must be positive")
 
@@ -202,13 +210,14 @@ class ThrScanViewer:
             fig.suptitle(title)
 
         y0 = self.thr[self.row]
-        (self._line_c,) = axc.plot([], [], **_CURVE)
+        (self._line_c,) = axc.plot([], [], **_POINTS)
+        (self._line_fit,) = axc.plot([], [], **_FIT)
         (self._line_t,) = axt.plot([], [], **_CURVE)
         self._vline = ax.axvline(self.channel, **_CURSOR)
         self._hline = ax.axhline(y0, **_CURSOR)
         self._mark_c = axc.axhline(y0, **_CURSOR)
         self._mark_t = axt.axvline(self.channel, **_CURSOR)
-        self._readout = ax.set_title("")
+        self._readout = ax.set_title("", fontsize=10)
 
         ax.set_xlim(*self._xfull)
         ax.set_ylim(*self._yfull)
@@ -216,7 +225,7 @@ class ThrScanViewer:
         axt.set_ylim(self.vmin, self.vmax)
 
         self._blit = _BlitManager(fig.canvas, [
-            self._line_c, self._line_t, self._vline, self._hline,
+            self._line_c, self._line_fit, self._line_t, self._vline, self._hline,
             self._mark_c, self._mark_t, self._readout])
         fig.canvas.mpl_connect("button_press_event", self._on_click)
         fig.canvas.mpl_connect("scroll_event", self._on_scroll)
@@ -243,6 +252,33 @@ class ThrScanViewer:
         self._refresh_selection()
         if draw:
             self._blit.update()
+
+    def set_fit(self, params, model, label=None):
+        """Attach per-channel fit results to draw in the channel panel.
+
+        ``params`` is a structured array with one record per channel and at
+        least the fields ``flex`` (0 means no fit), ``lo`` and ``hi`` (the
+        threshold range the fit used). ``model(thresholds, params[ch])``
+        returns the fitted counts. ``label(params[ch])`` gives the text for
+        the readout; by default flex and, when present, noise are shown."""
+        params = np.asarray(params)
+        if params.shape != (self.ncol,):
+            raise ValueError(f"fit parameters for {params.shape} channels, viewer has {self.ncol}")
+        names = params.dtype.names or ()
+        for name in ("flex", "lo", "hi"):
+            if name not in names:
+                raise ValueError(f"fit parameters need a field '{name}'")
+        self._fit, self._fit_model, self._fit_label = params, model, label
+        self._refresh_selection()
+        self._blit.update()
+
+    def _fit_text(self, p):
+        if self._fit_label is not None:
+            return self._fit_label(p)
+        text = f"fit: flex {p['flex']:.1f}"
+        if "noise" in p.dtype.names:
+            text += f", noise {p['noise']:.1f}"
+        return text
 
     def set_clim(self, vmin=None, vmax=None):
         """Set the colour limits; the side panels use the same count range."""
@@ -338,8 +374,17 @@ class ThrScanViewer:
         self._mark_t.set_xdata([ch, ch])
         self._hline.set_ydata([y, y])
         self._mark_c.set_ydata([y, y])
-        self._readout.set_text(
-            f"channel {ch}    {self.ylabel.lower()} {y:g}    counts {self.data[r, ch]}")
+        text = f"channel {ch}    {self.ylabel.lower()} {y:g}    counts {self.data[r, ch]}"
+        if self._fit is not None:
+            p = self._fit[ch]
+            if p["flex"] > 0:
+                grid = np.arange(p["lo"], p["hi"] + self.step / 8, self.step / 4)
+                self._line_fit.set_data(self._fit_model(grid, p), grid)
+                text += "\n" + self._fit_text(p)
+            else:
+                self._line_fit.set_data([], [])
+                text += "\nno fit"
+        self._readout.set_text(text)
 
     def _on_click(self, event):
         if event.button != MouseButton.LEFT or event.inaxes is None:

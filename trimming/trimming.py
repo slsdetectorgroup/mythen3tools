@@ -36,7 +36,8 @@ def find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma=
 
     fsc.init_params(initFlex,initNPh)
     print('**badchans',chanmask)
-    flex,noise,ampl,cs,counts=fsc.fit_all(thresholds,data,chanmask)
+    fit=fsc.fit_all_records(thresholds,data,chanmask)
+    flex,noise,ampl,cs,counts=fit["flex"],fit["noise"],fit["ampl"],fit["cs"],fit["counts"].copy()
     print("saving results to",outFname)
     if outFname!=None:
         fsc.save_scurve_fit_file(outFname,flex,noise,ampl,cs,counts)
@@ -82,7 +83,7 @@ def find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma=
     if len(counts[counts==0])>0:
         counts[counts==0]=np.median(counts[counts>0])
     print("done with fitting function")
-    return thr0,counts,flex
+    return thr0,counts,fit
 
 
 def find_target_threshold_pool(arg):
@@ -94,7 +95,7 @@ def find_target_threshold_pool(arg):
     nSigma=arg[5] 
     outFname=arg[6]
     chanmask=arg[7]
-    thr0, counts, flex = find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma, outFname)
+    thr0, counts, fit = find_target_threshold(data, smin, smax, initNPh, initFlex, chanmask, nSigma, outFname)
     return thr0, counts
 
 def find_target_vtrim(data, smin, smax, counts,chanmask, nSigma=5):
@@ -299,7 +300,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
     nrow = len(threshold)
     vth= np.zeros((len(counters),nmod), dtype = np.int32)
     counts= np.zeros((3,nmod,1280), dtype = np.int32)
-    flex_before = np.zeros((3,nmod,1280))     # fitted inflection point per channel, 0 if not fitted
+    fit_before = np.zeros((3,nmod,1280), dtype=fsc.FIT_DTYPE)   # S-curve fit per channel, zero if not fitted
     data_thr = np.zeros((3,nmod,nrow,ncol), dtype =  to_dtype(d.dr))
     #ii=0
     outfname=None
@@ -322,7 +323,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
         with timer.step(f"threshold scan c{ic}"):
             data_thr[ic]= scan(d,rx,dac, minthr, maxthr, thrstep)
         with timer.step(f"plot threshold scan c{ic}"):
-            psc.plot_thrscan(np.concatenate(data_thr[ic],axis=1), minthr, maxthr, thrstep)
+            viewer=psc.plot_thrscan(np.concatenate(data_thr[ic],axis=1), minthr, maxthr, thrstep)
         
         # The fit takes ~50 ms per module with aare, so the modules are
         # fitted one after the other in this process (no worker pool).
@@ -334,8 +335,9 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
                 if verbose==1:
                     outfname=str(d.fpath)+'/thrdisp_'+fn+'_TB0_c'+str(ic)+'_d'+str(imod)+'_'+str(ind)+'.dat'
                 print('**badchans',chanmask[imod])
-                vth[ic,imod],counts[ic,imod],flex_before[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph[imod], ff, chanmask[imod], nsigma, outfname)
+                vth[ic,imod],counts[ic,imod],fit_before[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph[imod], ff, chanmask[imod], nsigma, outfname)
                 print ("MODULE",imod,"COUNTER",ic,"THRESHOLD",vth[ic,imod]);
+            viewer.set_fit(np.concatenate(fit_before[ic]), fsc.evaluate)
                    
         
         fig, ax = plt.subplots()
@@ -498,7 +500,7 @@ def trim_f(d,rx,minthr, maxthr, thrstep, nph, chanmask, nsigma=5, verbose=1):
             trimbits[ic::3,imod]=trimbits[0::3,imod]
         
     print(Vtrim)
-    return vth,Vtrim,trimbits,flex_before
+    return vth,Vtrim,trimbits,fit_before
         
 
     ###########################################################
@@ -528,7 +530,7 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
     nrow = len(threshold)
     vth= np.zeros((len(counters),nmod), dtype = np.int32)
     counts= np.zeros((3,nmod,ncol), dtype = np.int32)
-    flex_after = np.zeros((3,nmod,ncol))      # fitted inflection point per channel after trimming
+    fit_after = np.zeros((3,nmod,ncol), dtype=fsc.FIT_DTYPE)   # S-curve fit per channel after trimming
     data_thr = np.zeros((3,nmod,nrow,ncol), dtype =  to_dtype(d.dr))
     #ii=0
     outfname=None
@@ -556,8 +558,8 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
             for imod in range(nmod):
                 if verbose==1:
                     outfname=str(d.fpath)+'/thrdisp_'+fn+'_trimmed_c'+str(ic)+'_d'+str(imod)+'_'+str(ind)+'.dat'
-                vth[ic,imod],counts[ic,imod],flex_after[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph[imod], ff, chanmask[imod], 0, outfname)
-                fitted=flex_after[ic,imod][flex_after[ic,imod]>0]
+                vth[ic,imod],counts[ic,imod],fit_after[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph[imod], ff, chanmask[imod], 0, outfname)
+                fitted=fit_after[ic,imod]["flex"][fit_after[ic,imod]["flex"]>0]
                 print("MODULE",imod,"COUNTER",ic,"TRIMMED THRESHOLD median",np.median(fitted) if len(fitted) else 0,"RMS",np.std(fitted) if len(fitted) else 0)
         """       
         flex,noise,ampl,cs,cc=fsc.fit_all(threshold,data_thr[ic])
@@ -607,7 +609,7 @@ def test_trimming(d,rx,minthr, maxthr, thrstep, nph, chanmask, verbose=1):
          #   vth[ic,imod],counts[ic,imod]=find_target_threshold(data_thr[ic,imod], minthr, maxthr, nph, ff, nsigma, outfname)
     """
 
-    return data_thr,vth,flex_after
+    return data_thr,vth,fit_after
         
 
         
@@ -626,7 +628,7 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     print("starting trimming", d.settings, minthr, maxthr, thrstep)
     timer.reset()
     start = time.time()
-    vth,vtrim,trimbits,flex_before=trim_f(d,rx,minthr, maxthr, thrstep,nph, chanmask, nsigma, verbose)
+    vth,vtrim,trimbits,fit_before=trim_f(d,rx,minthr, maxthr, thrstep,nph, chanmask, nsigma, verbose)
 
     end = time.time()
     d.counters=[0,1,2]
@@ -656,7 +658,7 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     fname=str(d.fpath)+'/'+ff+'_'+str(d.findex)
     d.trimbits=fname
     print(chanmask)
-    tdata,vth,flex_after=test_trimming(d,rx,minthr+100, maxthr+100, thrstep,nph,  chanmask, verbose)
+    tdata,vth,fit_after=test_trimming(d,rx,minthr+100, maxthr+100, thrstep,nph,  chanmask, verbose)
  
     end = time.time()
     print('Including testing:',end - start,'seconds')
@@ -693,7 +695,8 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
         sstep=(maxthr-minthr)/(data.shape[1]-1)
         #print(data.shape,np.concatenate(data,axis=1).shape,np.arange(minthr,maxthr+sstep,sstep).shape )
         with timer.step(f"plot test scan c{ic}"):
-            psc.plot_thrscan(np.concatenate(data,axis=1), minthr+100, maxthr+100, sstep)
+            viewer=psc.plot_thrscan(np.concatenate(data,axis=1), minthr+100, maxthr+100, sstep)
+            viewer.set_fit(np.concatenate(fit_after[ic]), fsc.evaluate)
 
 
     fig, ax = plt.subplots()
@@ -711,9 +714,9 @@ def trim(ff, d,rx,minthr, maxthr, thrstep,nph, nsigma, chanmask, verbose=1):
     fig1.show()
 
     # threshold dispersion before and after trimming, counter 0, all modules
-    fig2, ax2 = psc.plot_threshold_dispersion(flex_before[0], flex_after[0])
+    fig2, ax2 = psc.plot_threshold_dispersion(fit_before[0]["flex"], fit_after[0]["flex"])
     fig2.show()
-    for label, fl in (("before", flex_before[0]), ("after", flex_after[0])):
+    for label, fl in (("before", fit_before[0]["flex"]), ("after", fit_after[0]["flex"])):
         v = fl[fl > 0]
         if len(v):
             print("THRESHOLD DISPERSION", label, "trimming: median", np.median(v), "RMS", np.std(v), "channels", len(v))

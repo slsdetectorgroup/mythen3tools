@@ -39,6 +39,12 @@ _cfg = {"flex0": 1300.0, "ampl0": 3000.0, "noise0": 20.0, "cs0": 0.0005,
 NOISE_LIMITS = (5.0, 200.0)
 FLEX_LIMITS = (200.0, 2800.0)
 
+# one record per channel: the fitted parameters, the model value at the
+# inflection point (A/2) and the threshold range the fit used; all zero
+# for a channel without a fit
+FIT_DTYPE = np.dtype([("flex", "f8"), ("noise", "f8"), ("ampl", "f8"), ("cs", "f8"),
+                      ("counts", "f8"), ("lo", "f8"), ("hi", "f8")])
+
 
 def scurve(th, pedestal, pedslope, flex, noise, amplitude, chargesharing):
     s = 1 if sign else -1
@@ -156,12 +162,25 @@ def _model():
     return m
 
 
+def evaluate(thresholds, rec):
+    """Model counts at ``thresholds`` for one fit record (p0 = p1 = 0)."""
+    return scurve(np.asarray(thresholds, dtype=float), 0.0, 0.0,
+                  float(rec["flex"]), float(rec["noise"]), float(rec["ampl"]), float(rec["cs"]))
+
+
 def fit_all(thresholds, data, chanmask=[]):
     """Fit every channel of ``data`` (nsteps, nchan).
 
     Returns flex, noise, ampl, cs, counts per channel, zero for channels in
     ``chanmask`` and for channels whose fit failed or ended on a limit.
     ``counts`` is the model value at the inflection point, A/2."""
+    rec = fit_all_records(thresholds, data, chanmask)
+    return rec["flex"], rec["noise"], rec["ampl"], rec["cs"], rec["counts"]
+
+
+def fit_all_records(thresholds, data, chanmask=[]):
+    """As ``fit_all`` but returning one FIT_DTYPE record per channel,
+    including the threshold range ``lo``..``hi`` that the fit used."""
     thr = np.asarray(thresholds, dtype=float)
     data = np.asarray(data)
     if data.ndim != 2 or data.shape[0] != len(thr):
@@ -197,13 +216,17 @@ def fit_all(thresholds, data, chanmask=[]):
     if len(chanmask):
         good[np.asarray(list(chanmask), dtype=int)] = False
 
-    flex = np.where(good, mu, 0.0)
-    noise = np.where(good, sigma, 0.0)
-    ampl = np.where(good, A, 0.0)
-    cs = np.where(good, (-C if sign else C) / np.where(A != 0, A, 1), 0.0)
-    counts = np.where(good, 0.5 * A, 0.0)
+    rec = np.zeros(nch, dtype=FIT_DTYPE)
+    rec["flex"] = np.where(good, mu, 0.0)
+    rec["noise"] = np.where(good, sigma, 0.0)
+    rec["ampl"] = np.where(good, A, 0.0)
+    rec["cs"] = np.where(good, (-C if sign else C) / np.where(A != 0, A, 1), 0.0)
+    rec["counts"] = np.where(good, 0.5 * A, 0.0)
+    thr_used = np.ma.masked_array(np.broadcast_to(thr[:, None], valid.shape), mask=~valid)
+    rec["lo"] = np.where(good, thr_used.min(axis=0).filled(0.0), 0.0)
+    rec["hi"] = np.where(good, thr_used.max(axis=0).filled(0.0), 0.0)
     print("Could not fit", int((~good).sum() - len(set(chanmask))), "channels")
-    return flex, noise, ampl, cs, counts
+    return rec
 
 
 def fit_scurve(x, y, params=None, e=None):

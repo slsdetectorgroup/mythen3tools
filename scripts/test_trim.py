@@ -33,7 +33,7 @@ initFlex=1500
 #print("Fit down to",thrmin)
 
 
-thr,counts,flex=find_target_threshold(data, smin, smax, nph, initFlex, 5, outfname)
+thr,counts,fit=find_target_threshold(data, smin, smax, nph, initFlex, 5, outfname)
 
 plt.plot(counts)
 plt.show()
